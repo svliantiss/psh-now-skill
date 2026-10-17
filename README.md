@@ -11,7 +11,8 @@ recommended route, instead of stopping in a terminal you can't see.
 ## Install
 
 ```bash
-npx skills add psh-now/skill --skill psh-now -g
+npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -y -a universal
+sh .agents/skills/psh-now/scripts/setup.sh
 ```
 
 No npm/npx? Use the hosted installer:

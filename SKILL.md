@@ -37,9 +37,13 @@ metadata:
 
 **Start here: run this project's `psh`.** One offline screen names the skill, the host, this
 project's keys, the exact ask command, and anything stale. If a folder has no psh.now at all,
-the install is one line — and it needs **no** filesystem permission beyond that folder:
+the install is two lines with npm and git (`@psh-now`'s repo is private, so it needs your GitHub
+credentials), and one line without them. Either way it needs **no** filesystem permission beyond
+that folder:
 
-`curl -fsSL https://psh.abslm.nl/install.sh | PSH_SKILL_DIR="$PWD/.agents/skills/psh-now" sh`
+`npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -y -a universal`
+`sh .agents/skills/psh-now/scripts/setup.sh`
+`curl -fsSL https://psh.abslm.nl/install.sh | PSH_SKILL_DIR="$PWD/.agents/skills/psh-now" sh`  ← no npm, no git, no access
 
 The skill, this folder's keys and `./.psh/bin/psh` all land inside the workspace. Putting the
 skill and the `psh` CLI machine-wide means writing `~/.agents/skills/psh-now`,
@@ -87,9 +91,10 @@ setup only mints a key locally and calls the host. Everything needed is here.
 1. Install the skill (skip if it is already there):
 
    ```bash
-   npx skills add psh-now/skill --skill psh-now -g -y
-   # no npm/npx? the hosted installer, which also mints keys. Inside the folder it needs no
-   # permission at all:
+   npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -y -a universal
+   sh .agents/skills/psh-now/scripts/setup.sh
+   # no npm/git, or no access to the private repo? the hosted installer does both, and needs no
+   # permission at all inside the folder:
    #   curl -fsSL https://psh.abslm.nl/install.sh | PSH_SKILL_DIR="$PWD/.agents/skills/psh-now" sh
    #   ↳ machine-wide (skill for every project + `psh` on PATH + ~/.psh/keys.json) is the
    #     human's own terminal line: curl -fsSL https://psh.abslm.nl/install.sh | sh
@@ -224,8 +229,10 @@ live API behaviour disagree, trust the live API behaviour.
 
 ## Install (once, then setup)
 
-`npx skills add psh-now/skill --skill psh-now -g -y` — or the hosted installer, which also
-mints the keys and keeps every write inside the folder, so it needs no filesystem permission:
+`npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -y -a universal` then
+`sh .agents/skills/psh-now/scripts/setup.sh` — the repo is private, so that needs git and your
+GitHub credentials. Without them, the hosted installer does the same job (it mints the keys too)
+and keeps every write inside the folder, so it needs no filesystem permission:
 
 ```bash
 curl -fsSL https://psh.abslm.nl/install.sh | PSH_SKILL_DIR="$PWD/.agents/skills/psh-now" sh

@@ -4,7 +4,7 @@
   "description": "Ask a human before irreversible or destructive actions.",
   "author": { "name": "psh.now", "url": "https://psh.abslm.nl" },
   "homepage": "https://psh.abslm.nl",
-  "repository": "https://github.com/psh-now/skill",
+  "repository": "https://github.com/svliantiss/psh-now-skill",
   "license": "MIT",
   "keywords": ["psh.now", "psh-now", "approval", "human-in-the-loop", "permissions", "safety"],
   "interface": {

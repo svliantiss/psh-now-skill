@@ -27,7 +27,8 @@ service (server, database, dashboard) is closed source and lives elsewhere.
   optional `decision` string naming the chosen option id; it never replaces the
   boolean. Keep the "no fabricated approvals / no codes" rule.
 - Keep the install shape identical to the ecosystem norm:
-  `npx skills add <org>/skill --skill <name> -g`, with a `curl …/install.sh | sh`
+  `npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -y -a universal`, with a
+  `curl …/install.sh | sh`
   fallback.
 
 ## Sync
