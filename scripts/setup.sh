@@ -507,8 +507,6 @@ fi
 user=$(field userKey <"$KEYS")
 channel=$(field channelKey <"$KEYS")
 
-# A fresh setup means the next ask should (re)open the approval page.
-rm -f "$PSH_DIR/.opened"
 workspace=$(field workspaceId <"$KEYS")
 claimurl=$(field claimUrl <"$KEYS")
 
@@ -718,7 +716,9 @@ fi
 accessurl=$(field accessUrl <"$KEYS")
 [ -z "$accessurl" ] && [ -n "$user" ] && accessurl="$HOST/app?key=$user"
 
-# Final report — one editable template served from the host (install-report.txt).
+# Final report — one template that ships inside the skill (report.txt) and is rendered here.
+# It used to be fetched from $HOST/report.txt, which meant the text that instructs an agent
+# could change without a version bump and sat outside every digest (audit F7).
 channelname=$(field channelName <"$KEYS")
 channelurl=$(field channelUrl <"$KEYS")
 cn="${channelname:-Default}"
@@ -754,13 +754,25 @@ else
 - **this project** — \`$PSH_DIR\` — works right now, through \`$psh_cmd\`
 - **skill every project sees** — \`~/.agents/skills/psh-now\` — skipped
 - **CLI on PATH** — \`~/.local/bin/psh\` — skipped
-- **machine account record** — \`~/.psh/keys.json\` — skipped"
-  proj_dir="$(dirname "$PSH_DIR")"
-  mw_note="## Want it machine-wide? That is your one line
+- **machine account record** — \`~/.psh/keys.json\` — skipped
 
-Everything above already works, in this project, and the agent needs no filesystem permission
-for any of it. Four pieces are in place; three more need writes a sandbox does not have, so
-they are your step — run this from this folder, so the same account is kept:
+The run's last line says \`psh_machine_wide=incomplete\`. The section below is how to finish it —
+one tap on your phone, or one line in your terminal."
+  proj_dir="$(dirname "$PSH_DIR")"
+  mw_note="## Finish the machine-wide install
+
+Everything above already works in this project. Three pieces still need writes the sandbox does
+not allow, so they are not installed yet:
+
+1. the skill every project sees — \`~/.agents/skills/psh-now\`
+2. the \`psh\` CLI on PATH — \`~/.local/bin/psh\`
+3. the machine account record — \`~/.psh/keys.json\` — what keeps every project on this machine
+   on the one account instead of minting a second, invisible one
+
+**One tap.** Your agent sends one request, \u201cInstall psh.now globally?\u201d — approve it and the
+agent re-runs the install with the permissions granted. That is the fastest way.
+
+**Or one line**, in your own terminal, from this folder, so the same account is kept:
 
 1. the skill every project sees — \`~/.agents/skills/psh-now\`
 2. the \`psh\` CLI on PATH — \`~/.local/bin/psh\`
@@ -792,7 +804,7 @@ if [ -n "$claimurl" ]; then
   claim_section="## Claim your account — optional, new logins only
 
 This login is anonymous. Claiming it lets you sign in with an emailed code instead of the key,
-and keeps the fuller daily allowance:
+and keeps the fuller allowance — one lifetime allowance per workspace, no daily cap:
 
 $claimurl
 
@@ -810,13 +822,18 @@ cp="Please use psh.now for the \"$cn\" channel: ${channelurl:-<channel-link>}
 Open that link first: it is this channel's instructions. If this folder is not set up yet, these two lines set it up and join this channel — nothing new is minted:
 
 \`\`\`bash
-npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -y -a universal
-PSH_JOIN=\"${channelurl:-<channel-link>}\" sh .agents/skills/psh-now/scripts/setup.sh
+npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal
+PSH_JOIN=\"${channelurl:-<channel-link>}\" sh ~/.agents/skills/psh-now/scripts/setup.sh
 \`\`\`
 
 Already set up there? Then just fetch the link above and use it as it is."
 
-template=$(curl -fsS "$HOST/report.txt" 2>/dev/null || true)
+# The report template ships inside the skill (F7): the text that instructs an agent must be
+# versioned with the skill and covered by its digest, not fetched at run time from the host,
+# where it could change an agent's behaviour without any version bump. No network fallback:
+# a missing template prints the thin summary below instead of executing remote instructions.
+template=""
+[ -n "${SKILL_DIR:-}" ] && [ -f "$SKILL_DIR/report.txt" ] && template=$(cat "$SKILL_DIR/report.txt")
 # awk's gsub reads `&` in the *replacement* as "the matched text", so a value that
 # contains `&&` came out as the placeholder doubled ({machine_wide_note}{machine_wide_note})
 # — caught in the Docker lane on 2026-10-17, the day the note was added. Escape every
@@ -850,4 +867,17 @@ else
   echo "psh.now: ask with      $psh_cmd ask \"Title\" \"What you are about to do\""
   [ "$mw_done" = 1 ] || echo "psh.now: project-local install — the machine-wide copy is the human's line: cd \"$(dirname "$PSH_DIR")\" && curl -fsSL $HOST/install.sh | sh"
   echo "psh.now: open + approve ${accessurl:-$HOST/app}"
+fi
+
+# The machine-readable verdict, always the last line: a harness (or the skill's own flow) can
+# branch on it without parsing prose. `PSH_STRICT_MW=1` turns "incomplete" into exit 4 so a
+# pipeline cannot present a project-local install as a finished one (2026-10-18 audit, F6).
+if [ "$mw_done" = 1 ]; then
+  echo "psh_machine_wide=ok"
+else
+  echo "psh_machine_wide=incomplete"
+  if [ "${PSH_STRICT_MW:-0}" = 1 ]; then
+    echo "psh.now: PSH_STRICT_MW=1 — machine-wide install incomplete, exiting 4" >&2
+    exit 4
+  fi
 fi

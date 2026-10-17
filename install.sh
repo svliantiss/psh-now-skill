@@ -13,14 +13,18 @@
 # hears "use psh now", and the skill is what tells it to. Neither works alone.
 #
 # Inside a sandbox that only allows writes to the workspace, pieces 1, 2 and 4 cannot be
-# written. That is not a finished install and the script says so — but it is not a reason
-# for an agent to ask for blanket filesystem access because a downloaded page said to. The
-# project-local copy is complete for the folder it is in:
+# written. That is MACHINE-WIDE INCOMPLETE — not a finished install. The last line says so
+# (`psh_machine_wide=incomplete`; exit 4 with PSH_STRICT_MW=1), and the way to finish it is ONE
+# ask through psh.now — "Install psh.now globally?" → approve → re-run with the permissions
+# granted. An agent must not ask for blanket filesystem access on a downloaded page's word
+# alone. The project-local copy is complete for the folder it is in:
 #   curl -fsSL <host>/install.sh | PSH_SKILL_DIR="$PWD/.agents/skills/psh-now" sh
-# and the machine-wide pieces are ONE line the human runs in their own terminal:
-#   cd <that folder> && curl -fsSL <host>/install.sh | sh
-# Prefer the auditable path if you have npm (installs from a public repo and checks the
-# artifact digest):  npx skills add psh-now/skill --skill psh-now -g -y
+#
+# The npm route needs npm, git and credentials for the PRIVATE repo (svliantiss/psh-now-skill):
+#   npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal
+# This script is the route that needs no credentials, and it verifies every file it downloads
+# against <host>/.well-known/agent-skills/files.json. The audited artifact — this installer
+# included — is <host>/psh-now.tar.gz, digested in <host>/.well-known/agent-skills/index.json.
 # Or audit this file first instead of piping blind:
 #   curl -fsSL https://psh.abslm.nl/install.sh -o install.sh && ${EDITOR:-vi} install.sh && sh install.sh
 #
@@ -31,6 +35,9 @@
 #   PSH_NO_GLOBAL=1 skip the machine-wide copy
 #   PSH_NO_SHIM=1   skip the `psh` command on PATH
 #   PSH_BIN_DIR     where the `psh` command goes (default: first writable PATH dir)
+#   PSH_NO_VERIFY=1 install even when the published per-file digests cannot be fetched
+#   PSH_STRICT_MW=1 exit 4 when the machine-wide pieces could not be written
+#   PSH_DIGEST_URL  per-file digest manifest (default: <host>/.well-known/agent-skills/files.json)
 #
 # A workspace-local install (`PSH_SKILL_DIR=...`, `PSH_LOCAL=1`, or the automatic
 # fallback when ~/.agents is unwritable) is the FALLBACK, not the default: it still
@@ -77,14 +84,56 @@ if ! mkdir -p "$DEST/scripts" 2>/dev/null; then
     exit 1
   fi
 fi
-echo "psh.now: downloading skill from $HOST/skill.md"
-curl -fsSL "$HOST/skill.md" -o "$DEST/SKILL.md"
-curl -fsSL "$HOST/ask.sh" -o "$DEST/scripts/ask.sh"
-curl -fsSL "$HOST/setup.sh" -o "$DEST/scripts/setup.sh"
+echo "psh.now: downloading skill from $HOST (verifying sha256)"
+DIGEST_URL="${PSH_DIGEST_URL:-$HOST/.well-known/agent-skills/files.json}"
+digests="$(curl -fsSL "$DIGEST_URL" 2>/dev/null || true)"
+if [ -z "$digests" ]; then
+  if [ "${PSH_NO_VERIFY:-0}" = 1 ]; then
+    echo "psh.now: WARNING — no digest manifest at $DIGEST_URL, installing unverified (PSH_NO_VERIFY=1)" >&2
+  else
+    echo "psh.now: refusing to install: no digest manifest at $DIGEST_URL" >&2
+    echo "psh.now: audit this file instead ($HOST/install.sh), or set PSH_NO_VERIFY=1 to override" >&2
+    exit 1
+  fi
+fi
+
+sha_of() {
+  if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1" | awk '{print $1}'
+  else sha256sum "$1" | awk '{print $1}'; fi
+}
+digest_for() {
+  # The manifest is one JSON object, so match the key and its digest anywhere on the line:
+  #   {"host":"...","files":{"skill.md":"sha256:50ef...", ...}}
+  printf '%s' "$digests" \
+    | sed -n 's/.*"'"$1"'"[[:space:]]*:[[:space:]]*"sha256:\([a-f0-9]*\)".*/\1/p' | head -1
+}
+fetch() {
+  name="$1"; remote="$2"; local="$3"
+  curl -fsSL "$HOST$remote" -o "$local" || { echo "psh.now: download failed: $HOST$remote" >&2; exit 1; }
+  [ -z "$digests" ] && return 0
+  want="$(digest_for "$name")"
+  if [ -z "$want" ]; then
+    echo "psh.now: $name is not covered by the digest manifest — refusing" >&2
+    exit 1
+  fi
+  got="$(sha_of "$local")"
+  if [ "$want" != "$got" ]; then
+    echo "psh.now: DIGEST MISMATCH for $name" >&2
+    echo "psh.now:   published  $want" >&2
+    echo "psh.now:   downloaded $got" >&2
+    exit 1
+  fi
+}
+
+fetch skill.md /skill.md "$DEST/SKILL.md"
+fetch ask.sh /ask.sh "$DEST/scripts/ask.sh"
+fetch setup.sh /setup.sh "$DEST/scripts/setup.sh"
 # The health check the skill tells the agent to run before and after asking.
-curl -fsSL "$HOST/status.sh" -o "$DEST/scripts/status.sh"
+fetch status.sh /status.sh "$DEST/scripts/status.sh"
 # The `psh` command itself: the cold-start answer an agent finds first.
-curl -fsSL "$HOST/psh.sh" -o "$DEST/scripts/psh.sh"
+fetch psh.sh /psh.sh "$DEST/scripts/psh.sh"
+# The report template the installer renders (F7: agent-directed text ships with the skill).
+fetch report.txt /report.txt "$DEST/report.txt"
 chmod +x "$DEST/scripts/ask.sh" "$DEST/scripts/setup.sh" "$DEST/scripts/status.sh" "$DEST/scripts/psh.sh"
 # Bake the host in so the agent needs no configuration.
 printf '%s\n' "$HOST" > "$DEST/.host"
@@ -217,25 +266,32 @@ echo "psh.now: keys live in the workspace: <project>/.psh/keys.json (or \$PSH_HO
 echo "psh.now: ask with: $DEST/scripts/ask.sh \"Title\" \"What you are about to do\""
 
 if [ "$MW_MISSING" = 1 ] || [ "$SHIM_MISSING" = 1 ] || [ ! -f "$HOME/.psh/keys.json" ]; then
-  # Machine-wide state is not complete. Say exactly what is missing and whose step it is:
-  # the project-local copy is complete and is what the agent uses; the machine-wide pieces
-  # are the human's own one line, run outside the sandbox. Never present this as done, and
-  # never ask for widened filesystem access to finish it.
+  # Machine-wide state is not complete: say exactly what is missing, whose decision it is,
+  # and the ONE way to finish it — an ask through psh.now, which this human answers from
+  # their phone. Never present a project-local copy as a finished install.
   echo >&2
   echo "psh.now: MACHINE-WIDE INCOMPLETE — this project works, the machine does not." >&2
   echo "psh.now:   skill on the machine   ~/.agents/skills/psh-now   (every project sees it)" >&2
   echo "psh.now:   psh command on PATH    ~/.local/bin/psh          (the CLI, works anywhere)" >&2
   echo "psh.now:   machine account record ~/.psh/keys.json          (keeps every project on ONE account)" >&2
   echo "psh.now:   project-local copy     $DEST   (complete — this is what you use)" >&2
-  echo "psh.now: Those three are the human's one line, in their own terminal, from this" >&2
-  echo "psh.now: folder so the same account is kept:" >&2
-  echo "psh.now:   cd \"$(dirname "$DEST")\" && curl -fsSL $HOST/install.sh | sh" >&2
-  echo "psh.now: That is the human's step; the project-local copy above already works." >&2
+  echo "psh.now: ONE ask finishes it — approve on your phone, and the agent re-runs with" >&2
+  echo "psh.now: the permissions granted:" >&2
+  echo "psh.now:   psh ask \"Install psh.now globally?\" \"Approve and the agent installs the skill and CLI machine-wide.\"" >&2
   echo >&2
-  echo "psh.now: verify once the human has run it:" >&2
+  echo "psh.now: Or one line in your own terminal, from this folder, so the same account is kept:" >&2
+  echo "psh.now:   cd \"$(dirname "$DEST")\" && curl -fsSL $HOST/install.sh | sh" >&2
+  echo >&2
+  echo "psh.now: verify once it has run:" >&2
   echo "psh.now:   test -d ~/.agents/skills/psh-now && command -v psh && sh \"$DEST/scripts/status.sh\"" >&2
+  echo "psh_machine_wide=incomplete"
+  if [ "${PSH_STRICT_MW:-0}" = 1 ]; then
+    echo "psh.now: PSH_STRICT_MW=1 — machine-wide install incomplete, exiting 4" >&2
+    exit 4
+  fi
 else
   echo "psh.now: machine-wide ✓ skill: ~/.agents/skills/psh-now · CLI: $SHIM · record: ~/.psh/keys.json"
+  echo "psh_machine_wide=ok"
 fi
 echo "psh.now: done — now just tell your agent:"
 echo "  \"When you would ask me a question, route it through psh.now instead.\""

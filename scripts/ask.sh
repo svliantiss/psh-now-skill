@@ -14,7 +14,7 @@
 #
 # Environment (all optional):
 #   PSH_AGENT      same as --agent <name>; overrides detection
-#   PSH_BASE_URL   host to call (default: baked in by the installer)
+#   PSH_BASE_URL   host to call (default: baked in by the installer; PSH_HOST works too)
 #   PSH_API_KEY    use this key instead of the saved channel key
 #   PSH_HOME       where keys live (default: nearest ./.psh, walking up)
 #   PSH_TIMEOUT_MS how long to wait for a human (default server-side)
@@ -37,7 +37,20 @@ resolve_psh_dir() {
 }
 PSH_DIR="$(resolve_psh_dir)"
 KEYS="$PSH_DIR/keys.json"
-HOST="${PSH_BASE_URL:-$(cat "$PSH_DIR/host" 2>/dev/null || cat "$SKILL_DIR/host" 2>/dev/null || cat "$SKILL_DIR/.host" 2>/dev/null || true)}"
+
+# One reader for the host, shared verbatim with status.sh and psh.sh. A
+# project-local install writes it next to the keys (`.psh/host`); the skill
+# folder carries it baked in at install time, as `host` (what the package
+# ships) or `.host` (what an older installer wrote). Read both spellings.
+read_host() {
+  for f in "$@"; do
+    [ -f "$f" ] || continue
+    v="$(cat "$f" 2>/dev/null || true)"
+    [ -n "$v" ] && { printf '%s' "$v"; return 0; }
+  done
+  return 0
+}
+HOST="${PSH_BASE_URL:-${PSH_HOST:-$(read_host "$PSH_DIR/host" "$SKILL_DIR/host" "$SKILL_DIR/.host")}}"
 HOST="${HOST:-https://psh.abslm.nl}"
 CLIENT=""
 
@@ -46,9 +59,26 @@ field() {
   sed -n 's/.*"'"$1"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1
 }
 
-# Escape a string for a JSON value.
+# Escape a string for a JSON value. Control characters count: a title or
+# message with a raw newline, tab or CR (or any other C0 byte) would otherwise
+# reach the wire unescaped and make the body invalid JSON.
 esc() {
-  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | tr '\n' ' '
+  printf '%s' "$1" |
+    sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' |
+    awk '
+      { if (n++) printf "\\n"
+        s = $0
+        out = ""
+        for (i = 1; i <= length(s); i++) {
+          c = substr(s, i, 1)
+          rep = ""
+          for (k = 0; k < 32; k++) if (c == sprintf("%c", k)) { rep = sprintf("\\u%04x", k); break }
+          if (rep == "\\u0009") rep = "\\t"
+          else if (rep == "\\u000a") rep = "\\n"
+          else if (rep == "\\u000d") rep = "\\r"
+          out = out (rep == "" ? c : rep)
+        }
+        printf "%s", out }'
 }
 
 # Best-effort name of the calling harness, shown on the approval card.
@@ -110,7 +140,11 @@ api_key() {
   chmod 600 "$KEYS" 2>/dev/null || true
   printf '%s\n' "$HOST" >"$PSH_DIR/host"
   user=$(printf '%s' "$minted" | field userKey)
+  # Field order in the mint response: documented `channelKey` first, the
+  # undocumented `apiKey` alias second — accept either, so a response that
+  # omits `apiKey` still works.
   channel=$(printf '%s' "$minted" | field channelKey)
+  [ -n "$channel" ] || channel=$(printf '%s' "$minted" | field apiKey)
   claimurl=$(printf '%s' "$minted" | field claimUrl)
   {
     echo "psh.now: minted an anonymous workspace"
@@ -120,7 +154,7 @@ api_key() {
     [ -n "$claimurl" ] && echo "psh.now:   claim for more requests: $claimurl"
     echo "psh_result.auth_mode=anonymous"
   } >&2
-  printf '%s' "$(printf '%s' "$minted" | field apiKey)"
+  printf '%s' "$channel"
 }
 
 # Parse --client/--agent (--flag name or --flag=name); the rest are positional

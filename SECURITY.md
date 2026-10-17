@@ -1,17 +1,18 @@
 # Security — the psh.now skill
 
-_config: internal artifact + `security.md` for the public repo (checklist 3.7)._
+_config: internal artifact + `security.md` for the published skill repo (private; checklist 3.7)._
 
 ## What this skill does
 
 psh.now routes a question the agent was already going to ask into one human
 decision: the agent POSTs `{"title","message"}`, the user taps **Approve** or
-**Deny** from anywhere, and the agent gets one boolean back (`true`/`false`).
-It exists so agents stop stalling in a terminal nobody is watching.
+**Deny** — or types their own **answer** — from anywhere, and the agent gets one
+result back. It exists so agents stop stalling in a terminal nobody is watching.
 
 ## What runs on the machine
 
-Three POSIX `sh` scripts that come with the skill. They are plain shell —
+Four POSIX `sh` scripts that come with the skill (`ask.sh`, `setup.sh`,
+`status.sh`, `psh.sh`), plus the one-shot `install.sh`. They are plain shell —
 **no `eval`, no `sudo`, no service daemon** — and they touch only:
 
 | Location | Why |
@@ -48,9 +49,15 @@ One UTF-8 JSON body per ask:
 
 ## What comes back
 
-`{"approved": true}` or `{"approved": false}` — plus `decision` (which option
-on a batched ask) and `pollUrl`. Nothing else. The agent does not get codes,
-emails, or device lists from an ask.
+`status` is one of `approved`, `denied`, `answered` or `expired`, with `approved`
+a boolean and `answer` a string (the human's own words on `answered`, else
+`null`) — plus `decision` (which option on a batched ask) and `pollUrl`. Nothing
+else. The agent does not get codes, emails, or device lists from an ask.
+
+Act on `approved: true` only when `status` is exactly `approved`. `answered` is
+**not** a yes and not a no: it is instruction, and it never stands in for
+`approved: true` when the action needs approval. Everything else — `denied`,
+`expired`, a timeout, a dropped connection, a non-2xx — means **do not act**.
 
 ## Honest limits (please read)
 
@@ -64,31 +71,70 @@ emails, or device lists from an ask.
 
 ## How to audit the install without trusting the installer
 
-Pick whichever you actually control:
+The genuinely auditable path is the **digest-covered tarball**. The host publishes
+`https://psh.abslm.nl/.well-known/agent-skills/index.json`, whose `sha256:<hex>`
+digest covers the artifact at `https://psh.abslm.nl/psh-now.tar.gz`. That archive
+is built from the published package, so it holds everything the install puts on
+disk — `SKILL.md`, `install.sh`, `report.txt`, the scripts, `README.md`,
+`SECURITY.md`, `AGENTS.md`, `LICENSE`, the assets and the plugin manifests — and
+verifying it covers the installer too. This runs on stock macOS/Linux tools, and
+prints `ok` or `MISMATCH`:
 
-1. **Preferred — npm:** `npx skills add psh-now/skill --skill psh-now -g -y`
-   installs from a GitHub repo every file of which is readable before it runs.
-2. **Well-known tarball:** the host publishes
-   `.well-known/skills/index.json` with a `sha256:` digest of the artifact:
+```bash
+url=https://psh.abslm.nl
+want=$(curl -fsSL "$url/.well-known/agent-skills/index.json" \
+  | sed -n 's/.*"digest"[[:space:]]*:[[:space:]]*"sha256:\([0-9a-f]\{64\}\)".*/\1/p' | head -1)
+curl -fsSL "$url/psh-now.tar.gz" -o psh-now.tar.gz
+if command -v sha256sum >/dev/null 2>&1; then
+  got=$(sha256sum psh-now.tar.gz | awk '{print $1}')
+else
+  got=$(shasum -a 256 psh-now.tar.gz | awk '{print $1}')
+fi
+if [ -n "$want" ] && [ "$want" = "$got" ]; then
+  echo "ok — psh-now.tar.gz matches the published sha256"
+else
+  echo "MISMATCH"; echo "published  $want"; echo "downloaded $got"; exit 1
+fi
+tar xzf psh-now.tar.gz    # read install.sh and scripts/*.sh before running them
+```
 
-   ```bash
-   dig=$(curl -fsSL https://psh.abslm.nl/.well-known/agent-skills/index.json | …read digest)
-   curl -fsSL https://psh.abslm.nl/psh-now.tar.gz | shasum -a 256 -c -   # compare
-   ```
+`install.sh` goes further and verifies **every file it downloads**, byte for byte,
+against the per-file manifest it fetches from
+`https://psh.abslm.nl/.well-known/agent-skills/files.json`. The keys are the file
+names as served (`skill.md`, `ask.sh`, `setup.sh`, `status.sh`, `psh.sh`,
+`install.sh`, `report.txt`); each value is the sha256 of the exact served bytes.
+(`install.sh` is in the manifest so the tarball check covers it; the copy already
+running cannot verify itself.)
 
-   The `skills` CLI performs the same digest check on install.
-3. **The `curl | sh` fallback** exists only for machines without npm. If
-   you would rather not pipe blind:
+- A missing or unreadable manifest is a **refusal**, not a warning: the installer
+  stops. So is a file **not covered** by the manifest, and so is any **mismatch**
+  (published vs downloaded digests are printed before it stops).
+- `PSH_NO_VERIFY=1` overrides the missing-manifest refusal only — the install
+  proceeds and warns that it is unverified. It does **not** override a mismatch:
+  a wrong digest still stops the install.
+- `PSH_DIGEST_URL` points the check at a different manifest (self-hosted hosts).
 
-   ```bash
-   curl -fsSL https://psh.abslm.nl/install.sh -o install.sh
-   ${EDITOR:-vi} install.sh          # read it; it is ~50 lines of POSIX sh
-   sh install.sh
-   ```
+**npm — the private route.** `npx -y skills add svliantiss/psh-now-skill --skill
+psh-now --copy -g -y -a universal` installs from the **private** GitHub repo
+`svliantiss/psh-now-skill`. It needs npm, git and GitHub credentials, and nothing
+about it is anonymously readable: a credential-free `git ls-remote` against it
+fails, unlike a public control repo. Use it when you have that access and would
+rather read the repo than the archive.
+
+**The `curl | sh` fallback** exists for machines without npm, git or repo access,
+and it is the route that needs no credentials. If you would rather not pipe blind
+at all, read this one file first — it is ~300 lines of POSIX `sh`, digest check
+included:
+
+```bash
+curl -fsSL https://psh.abslm.nl/install.sh -o install.sh
+${EDITOR:-vi} install.sh
+sh install.sh
+```
 
 ## Reporting
 
-Contact the operator: **[absolum.nl](https://absolum.nl)** — or, once the
-public repo is live (checklist 4.1), open a security issue there. The skill's
-own scripts are the audit surface; the service itself is closed-source and
+Contact the operator: **[absolum.nl](https://absolum.nl)** — or, if you have
+access to the private repo (`svliantiss/psh-now-skill`), open an issue there. The
+skill's own scripts are the audit surface; the service itself is closed-source and
 should be treated as a black box **on your own domain** if you self-host it.

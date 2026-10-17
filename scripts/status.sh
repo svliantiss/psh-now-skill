@@ -45,16 +45,38 @@ resolve_psh_dir() {
 }
 PSH_DIR="$(resolve_psh_dir)"
 KEYS="$PSH_DIR/keys.json"
-HOST="${PSH_BASE_URL:-$(cat "$PSH_DIR/host" 2>/dev/null || cat "$SKILL_DIR/host" 2>/dev/null || cat "$SKILL_DIR/.host" 2>/dev/null || true)}"
+
+# One reader for the host, shared verbatim with ask.sh and psh.sh. A
+# project-local install writes it next to the keys (`.psh/host`); the skill
+# folder carries it baked in at install time, as `host` (what the package
+# ships) or `.host` (what an older installer wrote). Read both spellings.
+read_host() {
+  for f in "$@"; do
+    [ -f "$f" ] || continue
+    v="$(cat "$f" 2>/dev/null || true)"
+    [ -n "$v" ] && { printf '%s' "$v"; return 0; }
+  done
+  return 0
+}
+# PSH_HOST is install.sh's spelling of the same override; accept both so one variable works
+# wherever you set it.
+HOST="${PSH_BASE_URL:-${PSH_HOST:-$(read_host "$PSH_DIR/host" "$SKILL_DIR/host" "$SKILL_DIR/.host")}}"
 HOST="${HOST:-https://psh.abslm.nl}"
 
 field() {
   sed -n 's/.*"'"$1"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1
 }
 
+# JSON booleans need their own parser; `field` only matches quoted strings.
+# -E because BSD sed has no alternation in a basic regex.
+bool() {
+  sed -nE 's/.*"'"$1"'"[[:space:]]*:[[:space:]]*(true|false).*/\1/p' | head -n 1
+}
+
+# Never print a key: a short prefix and a short suffix, never the middle.
 mask() {
   case "$1" in
-    ""|"—") printf '%s' "$1" ;;
+    ""|"—") printf '%s' "—" ;;
     *)      printf '%s…%s' "$(printf '%s' "$1" | cut -c1-11)" "$(printf '%s' "$1" | rev | cut -c1-4 | rev)" ;;
   esac
 }
@@ -138,17 +160,41 @@ fi
 if [ -n "${PSH_API_KEY:-}" ]; then key_src="env (PSH_API_KEY)"; else key_src="$KEYS"; fi
 echo "psh.now: key $(mask "$KEY") (from $key_src)" >&2
 
-# 3) Auth + plan/usage. `me` is unauthenticated-misuse-safe to print; the key
+# 3) Auth + plan/usage. A dead key and a dead network are different answers:
+#    401/403 (or a body that says the key was rejected) is exit 3; a timeout,
+#    DNS/connect failure, 5xx or curl's 000 is exit 2 — "try again", never
+#    "your key is bad". `me` is unauthenticated-misuse-safe to print; the key
 #    itself never is.
-usage="$(curl -sS -m 5 -H "x-psh-key: $KEY" "$HOST/api/v1/me" 2>&1)" || usage=""
-if [ -z "$usage" ]; then
+raw="$(curl -sS -m 5 -w '\n%{http_code}' -H "x-psh-key: $KEY" "$HOST/api/v1/me" 2>/dev/null || true)"
+code="$(printf '%s' "$raw" | tail -n 1)"
+usage="$(printf '%s' "$raw" | sed '$d')"
+
+# A rejected key: the host said so with a status, or said so in the body.
+if [ "$code" = "401" ] || [ "$code" = "403" ] ||
+  printf '%s' "$usage" | grep -qiE 'unauthorized|invalid api key|key rejected'; then
   echo "psh.now: AUTH REJECTED — the stored key is dead or revoked. Re-run setup.sh." >&2
+  [ -n "$usage" ] && printf '%s\n' "$usage" >&2
   echo "psh_status.host=$HOST"
   echo "psh_status.auth=rejected"
   finish
   exit 3
 fi
-# A 401/403 body still prints JSON but not the expected workspace fields.
+
+# No status at all, or a server error: the host failed, the key is not the
+# question. Retry, do not re-mint.
+case "$code" in
+  "" | 000 | 5??)
+    echo "psh.now: UNREACHABLE — $HOST answered HTTP ${code:-000} on /api/v1/me" >&2
+    [ -n "$usage" ] && printf '%s\n' "$usage" >&2
+    echo "psh_status.host=$HOST"
+    echo "psh_status.auth=unreachable"
+    finish
+    exit 2
+    ;;
+esac
+
+# The host answered, but not with the account fields we need: the key it was
+# given is the thing to suspect.
 if ! printf '%s' "$usage" | grep -q '"workspace"'; then
   echo "psh.now: AUTH REJECTED — the stored key is dead or revoked. Re-run setup.sh." >&2
   [ -n "$usage" ] && printf '%s\n' "$usage" >&2
@@ -160,7 +206,11 @@ fi
 
 EMAIL="$(printf '%s' "$usage" | field email)"
 PLAN="$(printf '%s' "$usage" | field plan)"
+# `claimed` is a JSON boolean on current hosts and a quoted string on older
+# ones; accept both spellings, and treat `false` as not claimed.
 CLAIMED="$(printf '%s' "$usage" | field claimed)"
+[ -n "$CLAIMED" ] || CLAIMED="$(printf '%s' "$usage" | bool claimed)"
+case "$CLAIMED" in "" | false) CLAIMED="" ;; *) CLAIMED="yes" ;; esac
 # Integer fields need a numeric parse; `field` only matches quoted strings.
 num() { printf '%s' "$usage" | sed -n "s/.*\"$1\"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p" | head -n 1; }
 ONLINE="$(num onlineDevices)"

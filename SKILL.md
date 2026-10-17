@@ -38,22 +38,38 @@ metadata:
 **Start here: run this project's `psh`.** One offline screen names the skill, the host, this
 project's keys, the exact ask command, and anything stale. If a folder has no psh.now at all,
 the install is two lines with npm and git (`@psh-now`'s repo is private, so it needs your GitHub
-credentials), and one line without them. Either way it needs **no** filesystem permission beyond
-that folder:
+credentials), and one line without them:
 
-`npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -y -a universal`
-`sh .agents/skills/psh-now/scripts/setup.sh`
-`curl -fsSL https://psh.abslm.nl/install.sh | PSH_SKILL_DIR="$PWD/.agents/skills/psh-now" sh`  ← no npm, no git, no access
+```bash
+npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal
+sh ~/.agents/skills/psh-now/scripts/setup.sh
+curl -fsSL https://psh.abslm.nl/install.sh | PSH_SKILL_DIR="$PWD/.agents/skills/psh-now" sh   # no npm, no git, no access
+```
 
-The skill, this folder's keys and `./.psh/bin/psh` all land inside the workspace. Putting the
-skill and the `psh` CLI machine-wide means writing `~/.agents/skills/psh-now`,
-`~/.local/bin/psh` and `~/.psh/keys.json` — outside the workspace, so that is the **human's**
-line in their own terminal, not a permission for an agent to request:
+**A finished install is machine-wide.** Three pieces live outside the project:
+`~/.agents/skills/psh-now` (the skill every folder on this machine sees), a `psh` on PATH, and
+`~/.psh/keys.json` (the machine account record, which keeps every project on ONE account). That
+is why the install above carries `-g`: the machine-wide copy is what makes psh.now exist for the
+*next* folder, not just this one.
 
-`curl -fsSL https://psh.abslm.nl/install.sh | sh`
+A sandbox that can only write the workspace gets the project-local copy instead — the skill and
+`./.psh/bin/psh` inside the folder, keys in `./.psh/keys.json`. That works for this project, but
+it is **not** a finished install, and the run says so (`psh_machine_wide=incomplete`).
 
-An install that asked for permission is still a normal install — but never describe a
-project-local install as machine-wide. Bare `psh` makes no network call; `psh doctor` does.
+When the machine-wide pieces are refused, do this — in this order:
+
+1. Say it in one line: project-local copy works; the skill and `psh` for every other folder are
+   not installed yet.
+2. **Route one ask** — this is the one thing that needs the human, and psh.now is how they
+   answer:
+   `psh ask "Install psh.now globally?" "The skill and the psh CLI are this project's only. Approve and I will install them machine-wide."`
+   (No `psh` on PATH yet? `./.psh/bin/psh ask ...` — same command, the project's own copy.)
+3. Approved → re-run the `-g` line and `setup.sh` with the permissions granted. The report then
+   renders as machine-wide.
+4. Denied, or nobody answers → carry on project-local and leave it there. That is their call.
+
+Never describe a project-local install as machine-wide. Bare `psh` makes no network call;
+`psh doctor` does.
 
 psh.now is the smallest human-approval layer: a host, a key, and one page the
 user checks from their phone. It sends a one-line **title** and a short
@@ -91,8 +107,8 @@ setup only mints a key locally and calls the host. Everything needed is here.
 1. Install the skill (skip if it is already there):
 
    ```bash
-   npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -y -a universal
-   sh .agents/skills/psh-now/scripts/setup.sh
+   npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal
+   sh ~/.agents/skills/psh-now/scripts/setup.sh
    # no npm/git, or no access to the private repo? the hosted installer does both, and needs no
    # permission at all inside the folder:
    #   curl -fsSL https://psh.abslm.nl/install.sh | PSH_SKILL_DIR="$PWD/.agents/skills/psh-now" sh
@@ -143,12 +159,21 @@ on its own line; do not reflow a block into a sentence. Do not paraphrase it int
 card's button mints a link": on 2026-10-17 a run did exactly that and the human was left with
 nothing to copy.
 
-**Never call a project-local install machine-wide.** If the installer printed
-`MACHINE-WIDE INCOMPLETE`, that is expected inside a sandbox: it means the skill and the CLI
-that *other* folders would see are not installed, and the human's one line — in the report —
-does that when they want it. Say so in one line, hand over the report as it is, and carry on.
-Do not re-run anything, and do not request widened filesystem access: the install that matters
-for your work is already done.
+**When the run says the machine-wide install is NOT done, the install is unfinished — finish
+it, or say why you stopped.** The signals, in order of authority: the state line in the report,
+`psh_machine_wide=incomplete` on the last line of setup.sh's output, and `MACHINE-WIDE INCOMPLETE`
+from install.sh. Then:
+
+1. Say it in one line — project-local copy works; the machine-wide skill and `psh` are not there.
+2. Route **one** ask through psh.now (one request, not a terminal question):
+   `psh ask "Install psh.now globally?" "The skill and the psh CLI are this project's only. Approve and I will install them machine-wide."`
+3. Approved → re-run the `-g` install and `setup.sh` with the permissions granted, and report
+   the machine-wide result.
+4. Denied, or nobody answers → carry on project-local, leave it there, and hand over the report
+   as it came.
+
+Read that last machine line and act on it; do not hand it over, and never call a project-local
+install machine-wide.
 
 ## The one rule
 
@@ -229,18 +254,24 @@ live API behaviour disagree, trust the live API behaviour.
 
 ## Install (once, then setup)
 
-`npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -y -a universal` then
-`sh .agents/skills/psh-now/scripts/setup.sh` — the repo is private, so that needs git and your
-GitHub credentials. Without them, the hosted installer does the same job (it mints the keys too)
-and keeps every write inside the folder, so it needs no filesystem permission:
-
 ```bash
-curl -fsSL https://psh.abslm.nl/install.sh | PSH_SKILL_DIR="$PWD/.agents/skills/psh-now" sh
+npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal
+sh ~/.agents/skills/psh-now/scripts/setup.sh
 ```
 
-The skill, this project's keys and `./.psh/bin/psh` land in the workspace. The machine-wide
-copy — the skill every project sees, `psh` on PATH and `~/.psh/keys.json` — is outside it, so
-it is the human's own line in their terminal: `curl -fsSL https://psh.abslm.nl/install.sh | sh`.
+The repo is private, so that route needs npm, git and your GitHub credentials. Without them the
+hosted installer does the same job — it mints the keys too, and verifies every file it downloads
+against the published digests:
+
+```bash
+curl -fsSL https://psh.abslm.nl/install.sh | sh
+```
+
+Both routes install **machine-wide**: the skill every project sees, `psh` on PATH, and
+`~/.psh/keys.json`. Inside a sandbox that refuses writes outside the workspace, both fall back to
+the project-local copy — the skill and `./.psh/bin/psh` in this folder, keys in
+`./.psh/keys.json`, no permission needed — and that copy is **not** a finished install. Finish it
+with one ask, exactly as described above.
 Do not request widened filesystem access for it. The npm install only copies files, so run
 setup once:
 
@@ -562,11 +593,18 @@ channel key (what the agent sends):
 ```bash
 curl -s -X POST "$PSH_BASE_URL/api/v1/mint"
 # -> { "userKey": "psh_user_…", "channelKey": "psh_agent_…",
+#      "apiKey": "psh_user_…",   # the same value as userKey: what `x-psh-key` takes
 #      "workspaceId": "…", "appUrl": "…/app",
 #      "accessUrl": "…/app#key=…",   # open the dashboard without signing in
 #      "claimUrl": "…/claim#key=…",  # register to raise the free allowance
-#      "channelUrl": "…/c/<channel>" # this channel; connect more agents here
+#      "channelUrl": "…/c/<channel>", # this channel; connect more agents here
+#      "channelName": "…",      # the channel's label
+#      "plan": "anonymous",         # or "free" once claimed
+#      "expiresAt": "…",        # when the anonymous workspace stops being kept
+#      "note": "…"              # a short human-readable line about this mint
 #    }
+# The keys are what you persist: `userKey` is the person's app login, `channelKey` is what
+# you ask with. `apiKey` is the same value as `userKey`, and works the same way.
 ```
 
 **After minting, always tell the user** (in chat): the key is connected; the

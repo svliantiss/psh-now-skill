@@ -64,10 +64,23 @@ GLOBAL="$HOME/.psh"
 field() {
   sed -n 's/.*"'"$1"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1
 }
+# One reader for the host, shared verbatim with ask.sh and status.sh. A
+# project-local install writes it next to the keys (`.psh/host`); the skill
+# folder carries it baked in at install time, as `host` (what the package
+# ships) or `.host` (what an older installer wrote). Read both spellings.
+read_host() {
+  for f in "$@"; do
+    [ -f "$f" ] || continue
+    v="$(cat "$f" 2>/dev/null || true)"
+    [ -n "$v" ] && { printf '%s' "$v"; return 0; }
+  done
+  return 0
+}
+# Never print a key: a short prefix and a short suffix, never the middle.
 mask() {
   case "$1" in
-    "") printf '%s' "—" ;;
-    *) printf '%s' "$(printf '%s' "$1" | cut -c1-13)…" ;;
+    ""|"—") printf '%s' "—" ;;
+    *)      printf '%s…%s' "$(printf '%s' "$1" | cut -c1-11)" "$(printf '%s' "$1" | rev | cut -c1-4 | rev)" ;;
   esac
 }
 # Read a field from the workspace keys, falling back to the machine-global copy.
@@ -80,8 +93,7 @@ get() {
   printf '%s' "$v"
 }
 
-HOST="${PSH_BASE_URL:-$(get host)}"
-[ -n "$HOST" ] || HOST="$(cat "$SKILL/.host" 2>/dev/null || printf 'https://psh.abslm.nl')"
+HOST="${PSH_BASE_URL:-${PSH_HOST:-$(read_host "$DIR/host" "$GLOBAL/host" "$SKILL/host" "$SKILL/.host")}}"
 HOST="${HOST:-https://psh.abslm.nl}"
 
 warn_stale() {
@@ -135,11 +147,20 @@ breadcrumb() {
 }
 
 case "${1:-}" in
-  "" | status)
-    [ -n "${1:-}" ] || { breadcrumb; exit 0; }
+  "")
+    # Bare `psh`: the offline screen, and no network call.
+    breadcrumb
+    exit 0
+    ;;
+  status)
+    # Forward what the user typed after `status`, never the word itself.
+    shift
     exec sh "$SCRIPTS/status.sh" "$@"
     ;;
-  doctor) exec sh "$SCRIPTS/status.sh" --doctor ;;
+  doctor)
+    shift
+    exec sh "$SCRIPTS/status.sh" --doctor "$@"
+    ;;
   ask) shift; exec sh "$SCRIPTS/ask.sh" "$@" ;;
   setup) shift; exec sh "$SCRIPTS/setup.sh" "$@" ;;
   uninstall) shift; exec sh "$SCRIPTS/setup.sh" --uninstall "$@" ;;

@@ -1,7 +1,7 @@
 {
   "name": "psh-now",
   "description": "Human approval for AI agents. Ask before irreversible or destructive actions and get a boolean back.",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "author": { "name": "psh.now" },
   "homepage": "https://psh.abslm.nl",
   "repository": "https://github.com/svliantiss/psh-now-skill",

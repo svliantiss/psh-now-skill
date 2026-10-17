@@ -1,7 +1,8 @@
 # AGENTS.md
 
-Instructions for coding agents working in **this** repo (the public psh.now
-skill). For the skill's own instructions to agents, see `SKILL.md`.
+Instructions for coding agents working in **this** repo (the psh.now skill
+package — a private repo). For the skill's own instructions to agents, see
+`SKILL.md`.
 
 ## What this repo is
 
@@ -20,23 +21,37 @@ service (server, database, dashboard) is closed source and lives elsewhere.
 - Store credentials in `<project>/.psh/keys.json` (outside the skill dir, so
   reinstalling the skill cannot wipe them), with the machine's account in
   `~/.psh/keys.json` as the fallback, like here.now's `~/.herenow/credentials`.
-- `SKILL.md` and `install.sh` are **synced** from the service repo. Prefer
-  changing them there and re-syncing, rather than editing here.
-- The only valid approval answers are `{"approved": true}` and
-  `{"approved": false}` — `approved` stays a boolean. A batched `route` adds an
-  optional `decision` string naming the chosen option id; it never replaces the
-  boolean. Keep the "no fabricated approvals / no codes" rule.
+- `approved` stays a boolean, and `{"approved": true}` is only acted on when
+  `status` is exactly `approved`. The human may instead type an **answer**
+  (`status: "answered"`, with the text in `answer`): that is instruction, not
+  approval, and it never stands in for `approved: true` where approval is
+  required. Keep the "no fabricated approvals / no codes" rule, and keep the
+  request a single yes/no — no menus, no option lists.
+- Everything in the published package (`skill-repo/`) is **synced** from this
+  tree by `scripts/sync-skill-repo.sh`. Edit the canonical `skills/psh-now/`
+  files, never `skill-repo/` by hand.
 - Keep the install shape identical to the ecosystem norm:
-  `npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -y -a universal`, with a
-  `curl …/install.sh | sh`
-  fallback.
+  `npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal` then
+  `sh ~/.agents/skills/psh-now/scripts/setup.sh` (the `-g` is what makes the skill machine-wide),
+  with a `curl …/install.sh | sh` fallback that needs no credentials.
+- **A finished install is machine-wide**: the skill at
+  `~/.agents/skills/psh-now` for every folder, a `psh` CLI on PATH, and one
+  machine account record at `~/.psh/keys.json` (which keeps every project on ONE
+  account). When a sandbox refuses those writes the run is **incomplete** and
+  says so — `psh_machine_wide=incomplete` as setup.sh's last line (`MACHINE-WIDE
+  INCOMPLETE` from install.sh; exit 4 with `PSH_STRICT_MW=1`). The way to finish
+  it is ONE ask through psh.now, then a re-run with the permissions granted.
+  Never describe a project-local install as machine-wide.
 
 ## Sync
 
-From the service repo:
+From the service repo root:
 
 ```bash
 scripts/sync-skill-repo.sh
 ```
 
-which copies `skills/psh-now/SKILL.md` and `install.sh` into this directory.
+which copies `skills/psh-now/{SKILL.md,README.md,SECURITY.md,AGENTS.md,LICENSE,report.txt}`,
+the repo-root `install.sh`, `scripts/*.sh`, `assets/` and the plugin manifests into
+`skill-repo/`, and writes `skill-repo/host`. `scripts/build-tarball.sh` then builds the
+published archive from `skill-repo/`.
