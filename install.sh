@@ -189,10 +189,13 @@ install_shim() {
     mkdir -p "$PSH_BIN_DIR" 2>/dev/null || true
     shim_dir="$PSH_BIN_DIR"
   else
-    # Prefer a directory that is already on PATH — a shim nobody can find is
-    # not worth writing. User-owned dirs first; never hijack a foreign `psh`.
-    for cand in "$HOME/.local/bin" "$HOME/bin" "$HOME/.bun/bin" \
-      /opt/homebrew/bin /usr/local/bin; do
+    # Where does the CLI go? A user directory, never a package manager's prefix while a user dir
+    # is usable: writing into /opt/homebrew/bin makes `brew doctor` grumble (observed 2026-10-17,
+    # when a PATH that put Homebrew first won the old "first writable dir on PATH" race).
+    #   pass 1 — an existing writable user dir this shell can already see
+    #   pass 2 — ~/.local/bin, created if needed
+    #   pass 3 — /usr/local/bin, /opt/homebrew/bin — last resort
+    for cand in "$HOME/.local/bin" "$HOME/bin" "$HOME/.bun/bin"; do
       case ":$PATH:" in *":$cand:"*) ;; *) continue ;; esac
       [ -d "$cand" ] && [ -w "$cand" ] || continue
       if [ -e "$cand/psh" ] && ! grep -q "psh.now" "$cand/psh" 2>/dev/null; then
@@ -201,8 +204,25 @@ install_shim() {
       shim_dir="$cand"
       break
     done
+    if [ -z "$shim_dir" ] && mkdir -p "$HOME/.local/bin" 2>/dev/null && [ -w "$HOME/.local/bin" ]; then
+      if [ ! -e "$HOME/.local/bin/psh" ] || grep -q "psh.now" "$HOME/.local/bin/psh" 2>/dev/null; then
+        shim_dir="$HOME/.local/bin"
+        case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) SHIM_NEEDS_PATH=1 ;; esac
+      fi
+    fi
     if [ -z "$shim_dir" ]; then
-      # Nothing usable on PATH: still install, then tell the human the one line.
+      for cand in /usr/local/bin /opt/homebrew/bin; do
+        case ":$PATH:" in *":$cand:"*) ;; *) continue ;; esac
+        [ -d "$cand" ] && [ -w "$cand" ] || continue
+        if [ -e "$cand/psh" ] && ! grep -q "psh.now" "$cand/psh" 2>/dev/null; then
+          continue
+        fi
+        shim_dir="$cand"
+        break
+      done
+    fi
+    if [ -z "$shim_dir" ]; then
+      # Nothing usable at all: still install, then tell the human the one line.
       shim_dir="$HOME/.local/bin"
       if ! mkdir -p "$shim_dir" 2>/dev/null; then SHIM_MISSING=1; return 0; fi
       SHIM_NEEDS_PATH=1

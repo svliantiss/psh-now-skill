@@ -205,6 +205,22 @@ install_local_shim() {
 # 2026-10-17). mw_done below only ever *checked* for these; now something creates them.
 # Every write is best-effort: a sandbox that refuses ~/.agents must leave the project
 # install intact and say so, never abort a signup.
+# Which `psh` CLI is on this machine, if any? Location first, PATH last: `command -v` is a PATH
+# test and reports "missing" for an installed CLI in a sandbox with a short PATH (2026-10-17).
+mw_shim() {
+  for cand in "$HOME/.local/bin/psh" "$HOME/bin/psh" "$HOME/.bun/bin/psh" /usr/local/bin/psh /opt/homebrew/bin/psh; do
+    if [ -f "$cand" ] && grep -q "psh.now" "$cand" 2>/dev/null; then printf '%s\n' "$cand"; return 0; fi
+  done
+  command -v psh 2>/dev/null || return 1
+}
+
+# The three pieces a machine-wide install needs, by existence — never by whether this run wrote.
+mw_present() {
+  [ -d "${GLOBAL_DEST:-$HOME/.agents/skills/psh-now}" ] || return 1
+  [ -f "$GLOBAL_DIR/keys.json" ] || return 1
+  mw_shim >/dev/null 2>&1
+}
+
 install_machine_wide() {
   [ "${PSH_NO_GLOBAL:-0}" = 1 ] && return 0
   # Never copy from an unresolved source. Run from outside the skill layout (a script
@@ -712,25 +728,31 @@ then
     mv "$GLOBAL_DIR/README.md.tmp" "$GLOBAL_DIR/README.md" 2>/dev/null || rm -f "$GLOBAL_DIR/README.md.tmp"
   fi
 elif [ "$PSH_DIR" != "$GLOBAL_DIR" ]; then
-  # Not an error: this project is installed and connected. Only the machine-wide
-  # conveniences are missing, and only someone outside the sandbox can write them.
-  # Lead with what IS here — an agent that reads "cannot write" as a failure reports
-  # the whole install as broken (observed repeatedly, 2026-10-17).
-  echo "psh.now: note: $GLOBAL_DIR is not writable from here — that is the sandbox boundary, not an error" >&2
-  echo "psh.now: note: this project is installed, connected, and has its own command:" >&2
-  echo "psh.now: note:   ./.psh/bin/psh status" >&2
-  echo "psh.now: note: THIS PROJECT IS INSTALLED; THE MACHINE-WIDE COPY IS NOT. That is a" >&2
-  echo "psh.now: note: human step, not a permission to request — three paths outside the" >&2
-  echo "psh.now: note: workspace are involved:" >&2
-  echo "psh.now: note:   ~/.agents/skills/psh-now   the skill every project sees" >&2
-  echo "psh.now: note:   ~/.local/bin/psh          the CLI, works from any folder" >&2
-  echo "psh.now: note:   ~/.psh/keys.json          keeps every project on ONE account" >&2
-  echo "psh.now: note: say in one line that this install is project-local and unfinished, then" >&2
-  echo "psh.now: note: route ONE ask — psh ask \"Install psh.now globally?\" \"The skill and the" >&2
-  echo "psh.now: note: psh CLI are this project's only. Approve and I will install them" >&2
-  echo "psh.now: note: machine-wide.\" — and re-run with the permissions granted." >&2
-  echo "psh.now: note: or the human runs this in their own terminal, from this folder:" >&2
-  echo "psh.now: note:   cd \"$(dirname "$PSH_DIR")\" && curl -fsSL $HOST/install.sh | sh" >&2
+  # This run could not write outside the workspace. Whether that matters depends on what is
+  # ALREADY on the machine: the same output used to say "installed ✓ (machine-wide)" and
+  # "THE MACHINE-WIDE COPY IS NOT" in one breath when the pieces existed but this run's
+  # writes were refused (observed 2026-10-17, session a19dd6f2). Existence decides.
+  if mw_present; then
+    echo "psh.now: note: this run's write to $GLOBAL_DIR was refused — the sandbox boundary, not an error" >&2
+    echo "psh.now: note: the machine-wide install is ALREADY present, so nothing is missing:" >&2
+    echo "psh.now: note:   skill ~/.agents/skills/psh-now · CLI ${psh_cli:-psh} · record $GLOBAL_DIR/keys.json" >&2
+    echo "psh.now: note: this project is connected and ready. No ask, no re-run needed." >&2
+  else
+    echo "psh.now: note: $GLOBAL_DIR is not writable from here — that is the sandbox boundary, not an error" >&2
+    echo "psh.now: note: this project is installed, connected, and has its own command:" >&2
+    echo "psh.now: note:   ./.psh/bin/psh status" >&2
+    echo "psh.now: note: THIS PROJECT IS INSTALLED; THE MACHINE-WIDE COPY IS NOT — missing:" >&2
+    [ -d "${GLOBAL_DEST:-$HOME/.agents/skills/psh-now}" ] || echo "psh.now: note:   ~/.agents/skills/psh-now   the skill every project sees" >&2
+    [ -f "$GLOBAL_DIR/keys.json" ] || echo "psh.now: note:   $GLOBAL_DIR/keys.json   keeps every project on ONE account" >&2
+    mw_shim >/dev/null 2>&1 || echo "psh.now: note:   ~/.local/bin/psh   the CLI, works from any folder" >&2
+    echo "psh.now: note: That is a human step, not a permission to request. Say in one line that" >&2
+    echo "psh.now: note: this install is project-local and unfinished, then route ONE ask —" >&2
+    echo "psh.now: note: psh ask \"Install psh.now globally?\" \"The skill and the psh CLI are" >&2
+    echo "psh.now: note: this project's only. Approve and I will install them machine-wide.\"" >&2
+    echo "psh.now: note: — and re-run with the permissions granted. Or the human runs this in" >&2
+    echo "psh.now: note: their own terminal, from this folder:" >&2
+    echo "psh.now: note:   cd \"$(dirname "$PSH_DIR")\" && curl -fsSL $HOST/install.sh | sh" >&2
+  fi
 fi
 
 accessurl=$(field accessUrl <"$KEYS")
@@ -754,11 +776,7 @@ mw_done=0
 # Where did the CLI land, and can *this* shell see it? `command -v psh` is a PATH test: in a
 # sandbox with a short PATH it reports "missing" for an installed CLI, and the human then reads a
 # finished install as broken (observed 2026-10-17). Look in the usual locations first, then PATH.
-psh_cli=""
-for cand in "$HOME/.local/bin/psh" "$HOME/bin/psh" "$HOME/.bun/bin/psh" /usr/local/bin/psh /opt/homebrew/bin/psh; do
-  [ -f "$cand" ] && grep -q "psh.now" "$cand" 2>/dev/null && { psh_cli="$cand"; break; }
-done
-[ -z "$psh_cli" ] && psh_cli="$(command -v psh 2>/dev/null || true)"
+psh_cli="$(mw_shim 2>/dev/null || true)"
 [ -d "${GLOBAL_DEST:-$HOME/.agents/skills/psh-now}" ] && [ -n "$psh_cli" ] \
   && [ -f "$GLOBAL_DIR/keys.json" ] && mw_done=1
 # Machine-readable detail on stderr, so stdout stays exactly one verdict line.
