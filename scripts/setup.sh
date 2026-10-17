@@ -797,10 +797,11 @@ fi
 # account and the channel, so the key form works in both; the link is offered inside the same
 # block for anyone who would rather join that way. Fenced, because prose loses the command.
 cp="Please use psh.now for the \"$cn\" channel: ${channelurl:-<channel-link>}
-Open that link first: it is this channel's instructions. If this folder is not set up yet, run this one command in it — it installs psh.now there, joins this channel, and mints nothing:
+Open that link first: it is this channel's instructions. If this folder is not set up yet, these two lines set it up and join this channel — nothing new is minted:
 
 \`\`\`bash
-curl -fsSL $HOST/install.sh | PSH_JOIN=\"${channelurl:-<channel-link>}\" PSH_SKILL_DIR=\"\$PWD/.agents/skills/psh-now\" sh
+npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -y -a universal
+PSH_JOIN=\"${channelurl:-<channel-link>}\" sh .agents/skills/psh-now/scripts/setup.sh
 \`\`\`
 
 Already set up there? Then just fetch the link above and use it as it is."
