@@ -241,14 +241,16 @@ install_machine_wide() {
     ln -sfn "$GLOBAL_DEST" "$dir/psh-now" 2>/dev/null || true
   done
 
-  # A `psh` on PATH: the first thing an agent tries. Same rules as install.sh — an
-  # already-usable dir on PATH, user-owned first, never hijacking a foreign `psh`.
+  # A `psh` on PATH: the first thing an agent tries. Never hijack a foreign `psh`.
+  #   pass 1 — an existing, writable *user* dir this shell can already see
+  #   pass 2 — ~/.local/bin, created if needed: it is on a normal login PATH, and writing into a
+  #            package manager's prefix (/opt/homebrew/bin) makes `brew doctor` grumble
+  #   pass 3 — any existing writable dir on PATH, package manager or not
   shimdir=""
   if [ -n "${PSH_BIN_DIR:-}" ]; then
     mkdir -p "$PSH_BIN_DIR" 2>/dev/null && shimdir="$PSH_BIN_DIR"
   else
-    for cand in "$HOME/.local/bin" "$HOME/bin" "$HOME/.bun/bin" \
-      /opt/homebrew/bin /usr/local/bin; do
+    for cand in "$HOME/.local/bin" "$HOME/bin" "$HOME/.bun/bin"; do
       case ":$PATH:" in *":$cand:"*) ;; *) continue ;; esac
       [ -d "$cand" ] && [ -w "$cand" ] || continue
       if [ -e "$cand/psh" ] && ! grep -q "psh.now" "$cand/psh" 2>/dev/null; then
@@ -257,6 +259,22 @@ install_machine_wide() {
       shimdir="$cand"
       break
     done
+    if [ -z "$shimdir" ] && mkdir -p "$HOME/.local/bin" 2>/dev/null && [ -w "$HOME/.local/bin" ]; then
+      if [ ! -e "$HOME/.local/bin/psh" ] || grep -q "psh.now" "$HOME/.local/bin/psh" 2>/dev/null; then
+        shimdir="$HOME/.local/bin"
+      fi
+    fi
+    if [ -z "$shimdir" ]; then
+      for cand in /usr/local/bin /opt/homebrew/bin; do
+        case ":$PATH:" in *":$cand:"*) ;; *) continue ;; esac
+        [ -d "$cand" ] && [ -w "$cand" ] || continue
+        if [ -e "$cand/psh" ] && ! grep -q "psh.now" "$cand/psh" 2>/dev/null; then
+          continue
+        fi
+        shimdir="$cand"
+        break
+      done
+    fi
   fi
   [ -n "$shimdir" ] || shimdir="$HOME/.local/bin"
   [ -d "$shimdir" ] || mkdir -p "$shimdir" 2>/dev/null || { MW_REFUSED=1; return 0; }
@@ -707,10 +725,12 @@ elif [ "$PSH_DIR" != "$GLOBAL_DIR" ]; then
   echo "psh.now: note:   ~/.agents/skills/psh-now   the skill every project sees" >&2
   echo "psh.now: note:   ~/.local/bin/psh          the CLI, works from any folder" >&2
   echo "psh.now: note:   ~/.psh/keys.json          keeps every project on ONE account" >&2
-  echo "psh.now: note: the human runs this in their own terminal, from this folder:" >&2
+  echo "psh.now: note: say in one line that this install is project-local and unfinished, then" >&2
+  echo "psh.now: note: route ONE ask — psh ask \"Install psh.now globally?\" \"The skill and the" >&2
+  echo "psh.now: note: psh CLI are this project's only. Approve and I will install them" >&2
+  echo "psh.now: note: machine-wide.\" — and re-run with the permissions granted." >&2
+  echo "psh.now: note: or the human runs this in their own terminal, from this folder:" >&2
   echo "psh.now: note:   cd \"$(dirname "$PSH_DIR")\" && curl -fsSL $HOST/install.sh | sh" >&2
-  echo "psh.now: note: say in one line that this install is project-local, and do not request" >&2
-  echo "psh.now: note: widened filesystem access for it." >&2
 fi
 
 accessurl=$(field accessUrl <"$KEYS")
@@ -731,10 +751,26 @@ cn="${channelname:-Default}"
 install_machine_wide || true
 
 mw_done=0
-[ -d "${GLOBAL_DEST:-$HOME/.agents/skills/psh-now}" ] && command -v psh >/dev/null 2>&1 \
+# Where did the CLI land, and can *this* shell see it? `command -v psh` is a PATH test: in a
+# sandbox with a short PATH it reports "missing" for an installed CLI, and the human then reads a
+# finished install as broken (observed 2026-10-17). Look in the usual locations first, then PATH.
+psh_cli=""
+for cand in "$HOME/.local/bin/psh" "$HOME/bin/psh" "$HOME/.bun/bin/psh" /usr/local/bin/psh /opt/homebrew/bin/psh; do
+  [ -f "$cand" ] && grep -q "psh.now" "$cand" 2>/dev/null && { psh_cli="$cand"; break; }
+done
+[ -z "$psh_cli" ] && psh_cli="$(command -v psh 2>/dev/null || true)"
+[ -d "${GLOBAL_DEST:-$HOME/.agents/skills/psh-now}" ] && [ -n "$psh_cli" ] \
   && [ -f "$GLOBAL_DIR/keys.json" ] && mw_done=1
+# Machine-readable detail on stderr, so stdout stays exactly one verdict line.
+[ -n "$psh_cli" ] && echo "psh_cli=$psh_cli" >&2
+if [ -n "$psh_cli" ]; then
+  case ":$PATH:" in
+    *":$(dirname "$psh_cli"):"*) echo "psh_cli_on_path=yes" >&2 ;;
+    *) echo "psh_cli_on_path=no-this-shell (run $psh_cli, or add $(dirname "$psh_cli") to PATH)" >&2 ;;
+  esac
+fi
 if [ "$mw_done" = 1 ]; then
-  psh_cmd="psh"
+  case ":$PATH:" in *":$(dirname "$psh_cli"):"*) psh_cmd="psh" ;; *) psh_cmd="$psh_cli" ;; esac
   commands_heading="## Commands, anywhere on this machine"
 else
   commands_heading="## Commands, in this folder"
@@ -744,7 +780,8 @@ if [ "$mw_done" = 1 ]; then
   install_state="**psh.now skill and CLI are installed on this machine.** All of it:
 
 - **skill** — \`~/.agents/skills/psh-now\` — every project on this machine sees it
-- **CLI** — \`psh\` on PATH — works from any folder, and \`psh doctor\` checks it end to end
+- **CLI** — \`$psh_cli\` — works from any folder (\`psh\` when your shell's PATH has that
+  directory; a sandbox with a short PATH needs the absolute path), and \`psh doctor\` checks it
 - **machine account record** — \`~/.psh/keys.json\` — every project here stays on this one account
 - **this project** — \`$PSH_DIR\`"
   mw_note=""
@@ -774,11 +811,6 @@ agent re-runs the install with the permissions granted. That is the fastest way.
 
 **Or one line**, in your own terminal, from this folder, so the same account is kept:
 
-1. the skill every project sees — \`~/.agents/skills/psh-now\`
-2. the \`psh\` CLI on PATH — \`~/.local/bin/psh\`
-3. the machine account record — \`~/.psh/keys.json\` — this is what keeps every project on this
-   machine on the one account instead of minting a second, invisible one
-
 \`\`\`bash
 cd \"$proj_dir\" && curl -fsSL $HOST/install.sh | sh
 \`\`\`
@@ -786,8 +818,11 @@ cd \"$proj_dir\" && curl -fsSL $HOST/install.sh | sh
 Then all three should pass:
 
 \`\`\`bash
-test -d ~/.agents/skills/psh-now && command -v psh && sh \"$SKILL_DIR/scripts/status.sh\"
+test -f ~/.agents/skills/psh-now/SKILL.md && sh ~/.agents/skills/psh-now/scripts/psh.sh status
 \`\`\`
+
+(That checks the skill file, then runs the CLI by absolute path. \`command -v psh\` is only a PATH
+test — in a shell with a short PATH it says "missing" for an installed CLI.)
 
 Until you run it this is a **project-local** install, and the agent will say exactly that
 rather than call it finished. Nothing else in this report changes when you do: same keys, same

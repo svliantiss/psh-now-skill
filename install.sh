@@ -283,7 +283,8 @@ if [ "$MW_MISSING" = 1 ] || [ "$SHIM_MISSING" = 1 ] || [ ! -f "$HOME/.psh/keys.j
   echo "psh.now:   cd \"$(dirname "$DEST")\" && curl -fsSL $HOST/install.sh | sh" >&2
   echo >&2
   echo "psh.now: verify once it has run:" >&2
-  echo "psh.now:   test -d ~/.agents/skills/psh-now && command -v psh && sh \"$DEST/scripts/status.sh\"" >&2
+  echo "psh.now:   test -f ~/.agents/skills/psh-now/SKILL.md && sh ~/.agents/skills/psh-now/scripts/psh.sh status" >&2
+  echo "psh.now: (that runs the CLI by absolute path — \`command -v psh\` is only a PATH test)" >&2
   echo "psh_machine_wide=incomplete"
   if [ "${PSH_STRICT_MW:-0}" = 1 ]; then
     echo "psh.now: PSH_STRICT_MW=1 — machine-wide install incomplete, exiting 4" >&2

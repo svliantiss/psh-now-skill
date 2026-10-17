@@ -272,8 +272,14 @@ Both routes install **machine-wide**: the skill every project sees, `psh` on PAT
 the project-local copy — the skill and `./.psh/bin/psh` in this folder, keys in
 `./.psh/keys.json`, no permission needed — and that copy is **not** a finished install. Finish it
 with one ask, exactly as described above.
-Do not request widened filesystem access for it. The npm install only copies files, so run
-setup once:
+Check the install by **running** things, never with \`command -v\` alone: in a shell whose PATH
+lacks Homebrew or \`~/.local/bin\`, \`npx\`, \`npm\` and even \`psh\` all look missing while they are
+installed — look in \`~/.local/bin\`, \`~/.bun/bin\`, \`/opt/homebrew/bin\`, \`/usr/local/bin\` and run
+the absolute path (or \`export PATH="/opt/homebrew/bin:$PATH"\`). \`npx skills add\` can also print
+"Installation complete" and exit 0 while installing nothing (an \`EPERM\` in the middle), so trust
+\`~/.agents/skills/psh-now/SKILL.md\` existing, not the exit code or the lock file. If npm blames
+root-owned cache files and suggests \`chown\`, do not run it — that is usually a sandboxed \`HOME\`.
+The npm install only copies files, so run setup once:
 
 ```bash
 SKILL="${PSH_SKILL_DIR:-$PWD/.agents/skills/psh-now}"   # or ~/.agents/skills/psh-now
