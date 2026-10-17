@@ -726,23 +726,15 @@ fi
 # a link one and a key one, and nobody could tell which to paste where). The key decides the
 # account and the channel, so the key form works in both; the link is offered inside the same
 # block for anyone who would rather join that way. Fenced, because prose loses the command.
-cp="Please use psh.now for the \"$cn\" channel.
-
-That folder not set up yet? Run this in it — one command, every write stays inside the folder,
-so it needs no filesystem permission, and nothing new is minted:
+cp="Please use psh.now for the \"$cn\" channel: ${channelurl:-<channel-link>}
+That folder not set up yet? Run this one command in it — it installs psh.now there, joins this
+channel, and mints nothing:
 
 \`\`\`bash
-export PSH_API_KEY=${channel:-<channel-key>}
-curl -fsSL $HOST/install.sh | PSH_SKILL_DIR=\"\$PWD/.agents/skills/psh-now\" sh
-./.psh/bin/psh status
+curl -fsSL $HOST/install.sh | PSH_JOIN=\"${channelurl:-<channel-link>}\" PSH_SKILL_DIR=\"\$PWD/.agents/skills/psh-now\" sh
 \`\`\`
 
-Same prompt in a chat or in a sandbox: the key is what authenticates, and nothing opens a
-browser.
-
-Rather join by link than by key? ${channelurl:-<channel-link>} is this channel's reusable link:
-set \`PSH_JOIN\` to it instead of \`PSH_API_KEY\` and the same command connects, minting an
-ask-only key on this account."
+Already set up there? Then just fetch the link above and use it as it is."
 
 template=$(curl -fsS "$HOST/report.txt" 2>/dev/null || true)
 # awk's gsub reads `&` in the *replacement* as "the matched text", so a value that

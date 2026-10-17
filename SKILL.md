@@ -52,8 +52,8 @@ line in their own terminal, not a permission for an agent to request:
 
 `curl -fsSL https://psh.abslm.nl/install.sh | sh`
 
-Never ask for widened filesystem access to install psh.now, and never describe a project-local
-install as machine-wide. Bare `psh` makes no network call; `psh doctor` does.
+An install that asked for permission is still a normal install — but never describe a
+project-local install as machine-wide. Bare `psh` makes no network call; `psh doctor` does.
 
 psh.now is the smallest human-approval layer: a host, a key, and one page the
 user checks from their phone. It sends a one-line **title** and a short

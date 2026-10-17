@@ -223,7 +223,7 @@ if [ "$MW_MISSING" = 1 ] || [ "$SHIM_MISSING" = 1 ] || [ ! -f "$HOME/.psh/keys.j
   echo "psh.now: Those three are the human's one line, in their own terminal, from this" >&2
   echo "psh.now: folder so the same account is kept:" >&2
   echo "psh.now:   cd \"$(dirname "$DEST")\" && curl -fsSL $HOST/install.sh | sh" >&2
-  echo "psh.now: An agent must not request widened filesystem access for this." >&2
+  echo "psh.now: That is the human's step; the project-local copy above already works." >&2
   echo >&2
   echo "psh.now: verify once the human has run it:" >&2
   echo "psh.now:   test -d ~/.agents/skills/psh-now && command -v psh && sh \"$DEST/scripts/status.sh\"" >&2
