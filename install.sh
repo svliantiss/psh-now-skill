@@ -94,7 +94,11 @@ printf '%s\n' "$HOST" > "$DEST/.host"
 # to rediscover psh.now from nothing (that cost one session 47 tool calls).
 GLOBAL_DEST="$HOME/.agents/skills/psh-now"
 if [ "${PSH_NO_GLOBAL:-0}" != 1 ] && [ "$DEST" != "$GLOBAL_DEST" ]; then
-  if mkdir -p "$GLOBAL_DEST" 2>/dev/null; then
+  if [ -z "$DEST" ] || [ ! -f "$DEST/SKILL.md" ]; then
+    # Same trap as in setup.sh: an unresolved source turns this into
+    # `cp -R //. <dest>`, which copies the filesystem instead of the skill.
+    echo "psh.now: machine-wide skill skipped — the downloaded skill folder is missing" >&2
+  el  if mkdir -p "$GLOBAL_DEST" 2>/dev/null; then
     # Real files, not a symlink: a link to a project dir dangles the moment the
     # project is deleted, and a dangling "installed" skill is worse than none.
     cp -R "$DEST/." "$GLOBAL_DEST/" 2>/dev/null || true
