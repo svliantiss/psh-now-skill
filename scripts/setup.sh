@@ -623,7 +623,7 @@ POSTs a short title + message; the human taps Approve or Deny on their phone.
   command       psh            (this screen)   psh doctor   psh status   psh ask "Title" "Message"
   how to ask    sh $SKILL_DIR/scripts/ask.sh "Title" "What you are about to do"
   attach more   dashboard → the channel card → "Copy prompt for agent"
-  install       curl -fsSL $HOST/install.sh | PSH_SKILL_DIR="\$PWD/.agents/skills/psh-now" sh
+  install       curl -fsSL $HOST/install.sh | sh
   docs          $HOST/setup.md
 
 Rules: never start a second account for a human who already has one — if a
@@ -682,7 +682,7 @@ If a human says "use psh now" / "ask me first", run this first:
   psh doctor     # connectivity + credentials
 
   skill         ${GLOBAL_DEST:-$HOME/.agents/skills/psh-now}
-  install       curl -fsSL $HOST/install.sh | PSH_SKILL_DIR="\$PWD/.agents/skills/psh-now" sh
+  install       curl -fsSL $HOST/install.sh | sh
   docs          $HOST/setup.md
 
 Keys are **per project**: each project keeps its own in <project>/.psh/keys.json,
