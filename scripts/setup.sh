@@ -717,7 +717,7 @@ accessurl=$(field accessUrl <"$KEYS")
 [ -z "$accessurl" ] && [ -n "$user" ] && accessurl="$HOST/app?key=$user"
 
 # Final report — one template that ships inside the skill (report.txt) and is rendered here.
-# It used to be fetched from $HOST/report.txt, which meant the text that instructs an agent
+# It used to be fetched from the host at run time, which meant the text that instructs an agent
 # could change without a version bump and sat outside every digest (audit F7).
 channelname=$(field channelName <"$KEYS")
 channelurl=$(field channelUrl <"$KEYS")
