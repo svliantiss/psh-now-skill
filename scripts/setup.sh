@@ -40,7 +40,7 @@ SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 # Where the skill may have been installed machine-wide (the copy that shows up
 # in every later session's skill list), and the machine-global psh.now dir.
 GLOBAL_DEST="$HOME/.agents/skills/psh-now"
-GLOBAL_DIR="$HOME/.psh"
+GLOBAL_DIR="${GLOBAL_DIR:-$HOME/.psh}"   # overridable, e.g. CI or a test run
 
 # Remove what an install created. Keys are the account identity, so they stay
 # unless --purge was asked for explicitly.

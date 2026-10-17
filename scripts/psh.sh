@@ -129,7 +129,7 @@ breadcrumb() {
   printf '\n  ask now      psh ask "Deploy?" "Push the new build to production."\n'
   printf '  full state   psh doctor\n'
   printf '  attach more  dashboard → the channel card → "Copy prompt for agent"\n'
-  printf '  install      curl -fsSL %s/install.sh | sh\n' "$HOST"
+  printf '  install      curl -fsSL %s/install.sh | PSH_SKILL_DIR="$PWD/.agents/skills/psh-now" sh\n' "$HOST"
   printf '\n  Never start a second account for a human who already has one. If a connect\n'
   printf '  link is dead, say so in one line and ask for a current one.\n'
 }
