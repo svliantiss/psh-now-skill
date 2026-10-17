@@ -181,7 +181,10 @@ fi
 # Mint once: a user key (app login) + a channel key (the agent's key).
 # Keys are saved to <project>/.psh/keys.json (or $PSH_HOME), never inside the
 # skill directory — reinstalling the skill never wipes them.
-sh "$DEST/scripts/setup.sh"
+#
+# PSH_NO_GLOBAL: this script already did the machine-wide work above, and setup.sh does it
+# on the package route (where install.sh never runs). Without this the same line prints twice.
+PSH_NO_GLOBAL=1 sh "$DEST/scripts/setup.sh"
 
 echo "psh.now: installed to $DEST"
 if [ -n "$SHIM" ]; then
