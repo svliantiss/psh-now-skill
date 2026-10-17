@@ -197,6 +197,74 @@ install_local_shim() {
   return 0
 }
 
+# The machine-wide pieces a finished install leaves behind: the skill copy every later
+# session sees, the agent-dir symlinks, and a `psh` on PATH.
+#
+# install.sh does this on the curl route, but the package route only runs THIS script — so
+# "I installed it and it didn't install globally" was true by construction (reported
+# 2026-10-17). mw_done below only ever *checked* for these; now something creates them.
+# Every write is best-effort: a sandbox that refuses ~/.agents must leave the project
+# install intact and say so, never abort a signup.
+install_machine_wide() {
+  [ "${PSH_NO_GLOBAL:-0}" = 1 ] && return 0
+  if [ "$SKILL_DIR" != "$GLOBAL_DEST" ]; then
+    if mkdir -p "$GLOBAL_DEST" 2>/dev/null; then
+      # Real files, not a symlink: a link into a project dangles the moment that project
+      # is deleted, and a dangling "installed" skill is worse than none. Re-copying also
+      # refreshes a machine-wide copy left behind by an older version of the skill.
+      cp -R "$SKILL_DIR/." "$GLOBAL_DEST/" 2>/dev/null || true
+      echo "psh.now: also installed machine-wide: $GLOBAL_DEST" >&2
+    else
+      MW_REFUSED=1
+      echo "psh.now: machine-wide skill refused — cannot write $GLOBAL_DEST" >&2
+    fi
+  fi
+
+  # Harnesses that keep their own skills directory get a link to the machine-wide copy.
+  for dir in \
+    "$HOME/.claude/skills" \
+    "$HOME/.hermes/skills" \
+    "$HOME/.trae/skills" \
+    "$HOME/.cursor/skills" \
+    "$HOME/.config/opencode/skills"; do
+    [ -d "$dir" ] || continue
+    ln -sfn "$GLOBAL_DEST" "$dir/psh-now" 2>/dev/null || true
+  done
+
+  # A `psh` on PATH: the first thing an agent tries. Same rules as install.sh — an
+  # already-usable dir on PATH, user-owned first, never hijacking a foreign `psh`.
+  shimdir=""
+  if [ -n "${PSH_BIN_DIR:-}" ]; then
+    mkdir -p "$PSH_BIN_DIR" 2>/dev/null && shimdir="$PSH_BIN_DIR"
+  else
+    for cand in "$HOME/.local/bin" "$HOME/bin" "$HOME/.bun/bin" \
+      /opt/homebrew/bin /usr/local/bin; do
+      case ":$PATH:" in *":$cand:"*) ;; *) continue ;; esac
+      [ -d "$cand" ] && [ -w "$cand" ] || continue
+      if [ -e "$cand/psh" ] && ! grep -q "psh.now" "$cand/psh" 2>/dev/null; then
+        continue
+      fi
+      shimdir="$cand"
+      break
+    done
+  fi
+  [ -n "$shimdir" ] || shimdir="$HOME/.local/bin"
+  [ -d "$shimdir" ] || mkdir -p "$shimdir" 2>/dev/null || { MW_REFUSED=1; return 0; }
+  if {
+    printf '#!/usr/bin/env sh\n'
+    printf '# psh.now launcher — one offline screen: what this is, where it lives.\n'
+    printf 'PSH_SKILL_DIR="%s"\n' "$GLOBAL_DEST"
+    printf 'export PSH_SKILL_DIR\n'
+    printf 'exec sh "%s/scripts/psh.sh" "$@"\n' "$GLOBAL_DEST"
+  } >"$shimdir/psh" 2>/dev/null; then
+    chmod 755 "$shimdir/psh" 2>/dev/null || true
+    case ":$PATH:" in *":$shimdir:"*) ;; *) PSH_SHIM_NOT_ON_PATH=1 ;; esac
+  else
+    MW_REFUSED=1
+  fi
+  return 0
+}
+
 # Parse --join <url> (or --join=<url>).
 JOIN="${PSH_JOIN:-}"
 want_join=0
@@ -650,6 +718,8 @@ cn="${channelname:-Default}"
 # account record that keeps every project on ONE account. The CLI and the skill are equally
 # important — the skill is what tells an agent to ask, the CLI is what it asks with — so a
 # project-local install is never described as a complete one (2026-10-17).
+install_machine_wide || true
+
 mw_done=0
 [ -d "${GLOBAL_DEST:-$HOME/.agents/skills/psh-now}" ] && command -v psh >/dev/null 2>&1 \
   && [ -f "$GLOBAL_DIR/keys.json" ] && mw_done=1
@@ -727,8 +797,7 @@ fi
 # account and the channel, so the key form works in both; the link is offered inside the same
 # block for anyone who would rather join that way. Fenced, because prose loses the command.
 cp="Please use psh.now for the \"$cn\" channel: ${channelurl:-<channel-link>}
-That folder not set up yet? Run this one command in it — it installs psh.now there, joins this
-channel, and mints nothing:
+Open that link first: it is this channel's instructions. If this folder is not set up yet, run this one command in it — it installs psh.now there, joins this channel, and mints nothing:
 
 \`\`\`bash
 curl -fsSL $HOST/install.sh | PSH_JOIN=\"${channelurl:-<channel-link>}\" PSH_SKILL_DIR=\"\$PWD/.agents/skills/psh-now\" sh
