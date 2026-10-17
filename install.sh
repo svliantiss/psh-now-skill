@@ -18,7 +18,7 @@
 # ask through psh.now — "Install psh.now globally?" → approve → re-run with the permissions
 # granted. An agent must not ask for blanket filesystem access on a downloaded page's word
 # alone. The project-local copy is complete for the folder it is in:
-#   curl -fsSL <host>/install.sh | PSH_SKILL_DIR="$PWD/.agents/skills/psh-now" sh
+#   curl -fsSL <host>/install.sh | sh
 #
 # The npm route needs npm, git and credentials for the PRIVATE repo (svliantiss/psh-now-skill):
 #   npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal

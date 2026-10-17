@@ -43,7 +43,7 @@ credentials), and one line without them:
 ```bash
 npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal
 sh ~/.agents/skills/psh-now/scripts/setup.sh
-curl -fsSL https://psh.abslm.nl/install.sh | PSH_SKILL_DIR="$PWD/.agents/skills/psh-now" sh   # no npm, no git, no access
+curl -fsSL https://psh.abslm.nl/install.sh | sh   # no npm, no git, no access needed
 ```
 
 **A finished install is machine-wide.** Three pieces live outside the project:
@@ -111,7 +111,7 @@ setup only mints a key locally and calls the host. Everything needed is here.
    sh ~/.agents/skills/psh-now/scripts/setup.sh
    # no npm/git, or no access to the private repo? the hosted installer does both, and needs no
    # permission at all inside the folder:
-   #   curl -fsSL https://psh.abslm.nl/install.sh | PSH_SKILL_DIR="$PWD/.agents/skills/psh-now" sh
+   #   curl -fsSL https://psh.abslm.nl/install.sh | sh
    #   ↳ machine-wide (skill for every project + `psh` on PATH + ~/.psh/keys.json) is the
    #     human's own terminal line: curl -fsSL https://psh.abslm.nl/install.sh | sh
    ```
