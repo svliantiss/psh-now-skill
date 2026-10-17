@@ -300,7 +300,11 @@ if [ "$MW_MISSING" = 1 ] || [ "$SHIM_MISSING" = 1 ] || [ ! -f "$HOME/.psh/keys.j
   echo "psh.now:   psh ask \"Install psh.now globally?\" \"Approve and the agent installs the skill and CLI machine-wide.\"" >&2
   echo >&2
   echo "psh.now: Or one line in your own terminal, from this folder, so the same account is kept:" >&2
-  echo "psh.now:   cd \"$(dirname "$DEST")\" && curl -fsSL $HOST/install.sh | sh" >&2
+  # "this folder" must mean the folder the human is in. It used to print `dirname $DEST`, which is
+  # a skills directory, not a project (caught in session aa6fa812, 2026-10-17).
+  hand_dir="$PWD"
+  case "$DEST" in "$PWD"/*/.agents/skills/psh-now) hand_dir="${DEST%%/.agents/skills/psh-now}" ;; esac
+  echo "psh.now:   cd \"$hand_dir\" && curl -fsSL $HOST/install.sh | sh" >&2
   echo >&2
   echo "psh.now: verify once it has run:" >&2
   echo "psh.now:   test -f ~/.agents/skills/psh-now/SKILL.md && sh ~/.agents/skills/psh-now/scripts/psh.sh status" >&2
