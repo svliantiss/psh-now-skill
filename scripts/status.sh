@@ -220,7 +220,7 @@ LIMIT="$(num limit)"
 
 echo "psh.now: auth ✓" >&2
 echo "psh.now: account ${EMAIL:-anonymous}${CLAIMED:+ (claimed)}" >&2
-echo "psh.now: plan $PLAN, ${TODAY:-0}/${LIMIT:-?} requests today, $ONLINE online devices, $PENDING pending" >&2
+echo "psh.now: plan $PLAN, ${TODAY:-0} of ${LIMIT:-?} requests used, $ONLINE online devices, $PENDING pending" >&2
 echo "psh_status.host=$HOST"
 echo "psh_status.auth=ok"
 echo "psh_status.plan=$PLAN"
