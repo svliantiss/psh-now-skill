@@ -207,6 +207,16 @@ install_local_shim() {
 # install intact and say so, never abort a signup.
 install_machine_wide() {
   [ "${PSH_NO_GLOBAL:-0}" = 1 ] && return 0
+  # Never copy from an unresolved source. Run from outside the skill layout (a script
+  # copied to /tmp, a wrapper that does not export PSH_SKILL_DIR), $SKILL_DIR is empty
+  # and the copy becomes `cp -R //. <dest>` — which starts copying the whole
+  # filesystem (hit for real on 2026-10-17: 53 GB into a temp HOME before it was
+  # killed). An empty source is a "cannot do it", never a "copy everything".
+  if [ -z "$SKILL_DIR" ] || [ ! -f "$SKILL_DIR/SKILL.md" ]; then
+    MW_REFUSED=1
+    echo "psh.now: machine-wide skill skipped — cannot resolve the skill folder (PSH_SKILL_DIR)" >&2
+    return 0
+  fi
   if [ "$SKILL_DIR" != "$GLOBAL_DEST" ]; then
     if mkdir -p "$GLOBAL_DEST" 2>/dev/null; then
       # Real files, not a symlink: a link into a project dangles the moment that project
