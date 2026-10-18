@@ -114,7 +114,7 @@ running cannot verify itself.)
   a wrong digest still stops the install.
 - `PSH_DIGEST_URL` points the check at a different manifest (self-hosted hosts).
 
-**npm - the private route.** `npx -y skills add svliantiss/psh-now-skill --skill
+**npm - the private route.** `npx -y github:svliantiss/psh-now-skill
 psh-now --copy -g -y -a universal` installs from the **private** GitHub repo
 `svliantiss/psh-now-skill`. It needs npm, git and GitHub credentials, and nothing
 about it is anonymously readable: a credential-free `git ls-remote` against it

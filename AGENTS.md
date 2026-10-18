@@ -33,8 +33,9 @@ service (server, database, dashboard) is closed source and lives elsewhere.
   files, never `skill-repo/` by hand.
 - Keep the install shape identical to the ecosystem norm, as ONE command so the human's
   harness asks for approval once:
-  `npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal && sh ~/.agents/skills/psh-now/scripts/setup.sh`
-  (the `-g` is what makes the skill machine-wide), with a `curl …/install.sh | bash` fallback
+  `npx -y github:svliantiss/psh-now-skill`
+  (machine-wide by default: the skill in `~/.agents/skills/psh-now`, `psh` on PATH, and
+  `~/.psh/keys.json`), with a `curl …/install.sh | bash` fallback
   that needs no credentials and finishes the join in the same command when it is handed a
   channel link (`| bash -s -- <link>`). Never write an environment variable into a prompt a
   human is meant to paste.

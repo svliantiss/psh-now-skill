@@ -41,15 +41,15 @@ the install is one command with npm and git (`@psh-now`'s repo is private, so it
 credentials), and one line without them:
 
 ```bash
-npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal && sh ~/.agents/skills/psh-now/scripts/setup.sh
+npx -y github:svliantiss/psh-now-skill
 curl -fsSL https://psh.abslm.nl/install.sh | bash   # no npm, no git, no access needed
 ```
 
 **A finished install is machine-wide.** Three pieces live outside the project:
 `~/.agents/skills/psh-now` (the skill every folder on this machine sees), a `psh` on PATH, and
 `~/.psh/keys.json` (the machine account record, which keeps every project on ONE account). That
-is why the install above carries `-g`: the machine-wide copy is what makes psh.now exist for the
-*next* folder, not just this one.
+is why the command above installs machine-wide by default: that copy is what makes psh.now
+exist for the *next* folder, not just this one.
 
 A sandbox that can only write the workspace gets the project-local copy instead - the skill and
 `./.psh/bin/psh` inside the folder, keys in `./.psh/keys.json`. That works for this project, but
@@ -89,7 +89,7 @@ it. There are exactly three.
 **1. Fresh install** (nothing set up here yet). It ends by asking you for a test request:
 
 ```text
-I'd like you to set up psh.now: Install as a skill if I have npm: npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal && sh ~/.agents/skills/psh-now/scripts/setup.sh
+I'd like you to set up psh.now: Install as a skill if I have npm: npx -y github:svliantiss/psh-now-skill
 
 If not, do this instead: curl -fsSL https://psh.abslm.nl/install.sh | bash
 
@@ -105,7 +105,7 @@ Please use psh.now and join https://psh.abslm.nl/c/<channel-id>
 **3. A new sandbox that must join** (nothing set up, and it belongs on an existing channel):
 
 ```text
-I'd like you to set up psh.now: Install as a skill if I have npm: npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal && sh ~/.agents/skills/psh-now/scripts/setup.sh https://psh.abslm.nl/c/<channel-id>
+I'd like you to set up psh.now: Install as a skill if I have npm: npx -y github:svliantiss/psh-now-skill https://psh.abslm.nl/c/<channel-id>
 
 If not, do this instead: curl -fsSL https://psh.abslm.nl/install.sh | bash -s -- https://psh.abslm.nl/c/<channel-id>
 
@@ -145,7 +145,7 @@ setup only mints a key locally and calls the host. Everything needed is here.
 1. Install the skill (skip if it is already there):
 
    ```bash
-   npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal && sh ~/.agents/skills/psh-now/scripts/setup.sh
+   npx -y github:svliantiss/psh-now-skill
    # no npm/git, or no access to the private repo? the hosted installer does both, and needs no
    # permission at all inside the folder:
    #   curl -fsSL https://psh.abslm.nl/install.sh | bash
@@ -286,7 +286,7 @@ live API behaviour disagree, trust the live API behaviour.
 ## Install (once, then setup)
 
 ```bash
-npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal && sh ~/.agents/skills/psh-now/scripts/setup.sh
+npx -y github:svliantiss/psh-now-skill
 ```
 
 The repo is private, so that route needs npm, git and your GitHub credentials. Without them the
@@ -309,7 +309,7 @@ the absolute path (or \`export PATH="/opt/homebrew/bin:$PATH"\`). \`npx skills a
 "Installation complete" and exit 0 while installing nothing (an \`EPERM\` in the middle), so trust
 \`~/.agents/skills/psh-now/SKILL.md\` existing, not the exit code or the lock file. If npm blames
 root-owned cache files and suggests \`chown\`, do not run it - that is usually a sandboxed \`HOME\`.
-The npm install only copies files, so run setup once:
+Installed with the `skills` CLI instead? That route only copies files, so run setup once:
 
 ```bash
 SKILL="${PSH_SKILL_DIR:-$PWD/.agents/skills/psh-now}"   # or ~/.agents/skills/psh-now

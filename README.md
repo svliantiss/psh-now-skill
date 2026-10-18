@@ -24,17 +24,18 @@ A finished install is **machine-wide** and leaves four pieces in place:
 | the machine account record | `~/.psh/keys.json` - keeps every project on ONE account |
 
 The machine account record is what stops the next folder from minting a second,
-invisible account. The install command carries `-g` for exactly that reason.
+invisible account. The install command is machine-wide by default for exactly that reason.
 
 **npm - the private repo.** It needs npm, git and GitHub credentials; nothing
 about it is anonymously readable:
 
 ```bash
-npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal && sh ~/.agents/skills/psh-now/scripts/setup.sh
+npx -y github:svliantiss/psh-now-skill
 ```
 
-The npm route only copies files, so the `&&` half mints and sets up in the same command: the
-agent's harness asks for approval once.
+That one command fetches the private repo and runs its `install.sh` as its bin, so it copies
+the skill machine-wide, mints the account record, installs the `psh` CLI and prints the
+verdict. One command, so the human's harness asks for approval once.
 
 **curl - the credential-free route** (no npm, no git, no repo access). It verifies
 every file it downloads against the per-file sha256 manifest it fetches from
