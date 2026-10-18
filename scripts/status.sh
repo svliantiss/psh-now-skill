@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# psh.now — is the install healthy, reachable, and authenticated?
+# psh.now - is the install healthy, reachable, and authenticated?
 #
 #   ./scripts/status.sh            pending requests + plan/usage
 #   ./scripts/status.sh --doctor   the above, plus where everything lives and
@@ -8,7 +8,7 @@
 #
 # Exit codes:
 #   0  ok (host reachable + key accepted)
-#   1  not set up (no keys yet — run ./scripts/setup.sh)
+#   1  not set up (no keys yet - run ./scripts/setup.sh)
 #   2  host unreachable
 #   3  auth rejected (the stored key is dead or revoked)
 #
@@ -76,7 +76,7 @@ bool() {
 # Never print a key: a short prefix and a short suffix, never the middle.
 mask() {
   case "$1" in
-    ""|"—") printf '%s' "—" ;;
+    ""|"-") printf '%s' "-" ;;
     *)      printf '%s…%s' "$(printf '%s' "$1" | cut -c1-11)" "$(printf '%s' "$1" | rev | cut -c1-4 | rev)" ;;
   esac
 }
@@ -123,11 +123,11 @@ diagnose() {
   if [ -n "$shim" ]; then
     echo "psh.diag.shim=$shim"
   else
-    echo "psh.diag.shim=none (no 'psh' command on PATH — install again to add one)"
+    echo "psh.diag.shim=none (no 'psh' command on PATH - install again to add one)"
   fi
 }
 
-# In doctor mode, always print the map — even on the failure paths below.
+# In doctor mode, always print the map - even on the failure paths below.
 finish() {
   if [ "$DOCTOR" = 1 ]; then diagnose; fi
 }
@@ -136,7 +136,7 @@ echo "psh.now: host $HOST" >&2
 
 # 1) Reachability (no auth needed).
 if ! curl -fsS -m 5 "$HOST/api/v1/health" >/dev/null 2>&1; then
-  echo "psh.now: UNREACHABLE — $HOST did not answer /api/v1/health" >&2
+  echo "psh.now: UNREACHABLE - $HOST did not answer /api/v1/health" >&2
   echo "psh_status.host=$HOST"
   echo "psh_status.auth=unreachable"
   finish
@@ -148,21 +148,21 @@ echo "psh.now: reachable ✓" >&2
 KEY="${PSH_API_KEY:-$(field channelKey <"$KEYS" 2>/dev/null || true)}"
 [ -n "$KEY" ] || KEY="$(field apiKey <"$SKILL_DIR/.keys.json" 2>/dev/null || true)"
 if [ -z "$KEY" ]; then
-  echo "psh.now: NOT SET UP — no channel key in \$PSH_API_KEY or $KEYS" >&2
+  echo "psh.now: NOT SET UP - no channel key in \$PSH_API_KEY or $KEYS" >&2
   echo "psh.now: run: sh \"$SKILL_DIR/scripts/setup.sh\"  (or setup.sh --join <link>)" >&2
   echo "psh_status.host=$HOST"
   echo "psh_status.auth=none"
   finish
   exit 1
 fi
-# Never echo the key itself: with PSH_API_KEY set this printed "(from envpsh_agent_…)" — the
+# Never echo the key itself: with PSH_API_KEY set this printed "(from envpsh_agent_…)" - the
 # raw key in a log, and an unreadable sentence (found 2026-10-17).
 if [ -n "${PSH_API_KEY:-}" ]; then key_src="env (PSH_API_KEY)"; else key_src="$KEYS"; fi
 echo "psh.now: key $(mask "$KEY") (from $key_src)" >&2
 
 # 3) Auth + plan/usage. A dead key and a dead network are different answers:
 #    401/403 (or a body that says the key was rejected) is exit 3; a timeout,
-#    DNS/connect failure, 5xx or curl's 000 is exit 2 — "try again", never
+#    DNS/connect failure, 5xx or curl's 000 is exit 2 - "try again", never
 #    "your key is bad". `me` is unauthenticated-misuse-safe to print; the key
 #    itself never is.
 raw="$(curl -sS -m 5 -w '\n%{http_code}' -H "x-psh-key: $KEY" "$HOST/api/v1/me" 2>/dev/null || true)"
@@ -172,7 +172,7 @@ usage="$(printf '%s' "$raw" | sed '$d')"
 # A rejected key: the host said so with a status, or said so in the body.
 if [ "$code" = "401" ] || [ "$code" = "403" ] ||
   printf '%s' "$usage" | grep -qiE 'unauthorized|invalid api key|key rejected'; then
-  echo "psh.now: AUTH REJECTED — the stored key is dead or revoked. Re-run setup.sh." >&2
+  echo "psh.now: AUTH REJECTED - the stored key is dead or revoked. Re-run setup.sh." >&2
   [ -n "$usage" ] && printf '%s\n' "$usage" >&2
   echo "psh_status.host=$HOST"
   echo "psh_status.auth=rejected"
@@ -184,7 +184,7 @@ fi
 # question. Retry, do not re-mint.
 case "$code" in
   "" | 000 | 5??)
-    echo "psh.now: UNREACHABLE — $HOST answered HTTP ${code:-000} on /api/v1/me" >&2
+    echo "psh.now: UNREACHABLE - $HOST answered HTTP ${code:-000} on /api/v1/me" >&2
     [ -n "$usage" ] && printf '%s\n' "$usage" >&2
     echo "psh_status.host=$HOST"
     echo "psh_status.auth=unreachable"
@@ -196,7 +196,7 @@ esac
 # The host answered, but not with the account fields we need: the key it was
 # given is the thing to suspect.
 if ! printf '%s' "$usage" | grep -q '"workspace"'; then
-  echo "psh.now: AUTH REJECTED — the stored key is dead or revoked. Re-run setup.sh." >&2
+  echo "psh.now: AUTH REJECTED - the stored key is dead or revoked. Re-run setup.sh." >&2
   [ -n "$usage" ] && printf '%s\n' "$usage" >&2
   echo "psh_status.host=$HOST"
   echo "psh_status.auth=rejected"

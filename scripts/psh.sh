@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# psh.now command — the first thing an agent should try when a human says
+# psh.now command - the first thing an agent should try when a human says
 # "use psh now", "ask me first", or anything else that means "check with me".
 #
 #   psh                        one offline screen: what psh.now is, where it
@@ -79,7 +79,7 @@ read_host() {
 # Never print a key: a short prefix and a short suffix, never the middle.
 mask() {
   case "$1" in
-    ""|"—") printf '%s' "—" ;;
+    ""|"-") printf '%s' "-" ;;
     *)      printf '%s…%s' "$(printf '%s' "$1" | cut -c1-11)" "$(printf '%s' "$1" | rev | cut -c1-4 | rev)" ;;
   esac
 }
@@ -112,7 +112,7 @@ warn_stale() {
     fi
   done
   # A global CLI config for a different workspace than the global keys means one
-  # of them is out of date — the classic "doctor reports a deleted workspace".
+  # of them is out of date - the classic "doctor reports a deleted workspace".
   if [ -f "$GLOBAL/config.json" ] && [ -f "$GLOBAL/keys.json" ]; then
     cw="$(field workspaceId <"$GLOBAL/config.json")"
     kw="$(field workspaceId <"$GLOBAL/keys.json")"
@@ -122,19 +122,19 @@ warn_stale() {
     fi
   fi
   if [ ! -f "$KEYS" ]; then
-    printf '  no keys      nothing set up in this project yet — run: psh setup\n'
+    printf '  no keys      nothing set up in this project yet - run: psh setup\n'
   fi
 }
 
 breadcrumb() {
   ws="$(get workspaceId)"
-  printf 'psh.now — ask a human before you act (approval in one tap)\n\n'
+  printf 'psh.now - ask a human before you act (approval in one tap)\n\n'
   printf '  what it is   you POST a short title + message; the human taps Approve or Deny\n'
   printf '  host         %s\n' "$HOST"
   printf '  skill        %s\n' "$SKILL"
   printf '  keys         %s%s\n' "$KEYS" "$([ -f "$KEYS" ] || printf ' (not created yet)')"
   [ -n "$ws" ] && printf '  workspace    %s\n' "$ws"
-  [ -n "$ws" ] || printf '  workspace    (none yet — run: psh setup)\n'
+  [ -n "$ws" ] || printf '  workspace    (none yet - run: psh setup)\n'
   printf '  account key  %s   (dashboard sign-in; keep out of agent context)\n' "$(mask "$(get userKey)")"
   printf '  agent key    %s   (what the agent sends as x-psh-key)\n' "$(mask "$(get channelKey)")"
   warn_stale

@@ -1,8 +1,9 @@
 #!/usr/bin/env sh
-# psh.now setup — mint your user key + channel key, or attach to a channel.
+# psh.now setup - mint your user key + channel key, or attach to a channel.
 #
 #   ./scripts/setup.sh                 # mint a new (anonymous) account
-#   ./scripts/setup.sh --join <url>    # attach via a channel link (/c/<channel>)
+#   ./scripts/setup.sh <url>           # join that channel link (the way the prompts hand it over)
+#   ./scripts/setup.sh --join <url>    # the same thing, spelled out
 #   ./scripts/setup.sh --uninstall     # remove the skill, the `psh` command, symlinks
 #   ./scripts/setup.sh --help
 #
@@ -100,7 +101,7 @@ resolve_psh_dir() {
   # wrong account. Stop at the project root, or at $HOME, whichever comes first.
   # $HOME is checked BEFORE ~/.psh on purpose: with the checks the other way round,
   # a project under home with no .psh of its own (every real project, once a machine
-  # account exists) resolved to ~/.psh and wrote its keys into the machine record —
+  # account exists) resolved to ~/.psh and wrote its keys into the machine record -
   # observed 2026-10-17 on the native run: step 2's join left no project keys at all.
   while :; do
     [ "$dir" = "$HOME" ] && break
@@ -140,7 +141,7 @@ add_field() {
 }
 
 # Is a stored key still accepted by the host? Prints yes / no / unknown.
-# Only a definitive refusal counts as dead — a network blip must never orphan a
+# Only a definitive refusal counts as dead - a network blip must never orphan a
 # live account by triggering a re-mint.
 key_state() {
   key="$1"
@@ -155,7 +156,7 @@ key_state() {
 }
 
 # The keys.json of a sibling project that already knows this host, or nothing. Reads
-# outside the workspace are not confined — only writes are — so when a sandbox refused
+# outside the workspace are not confined - only writes are - so when a sandbox refused
 # to write the machine record ($HOME/.psh), the record a *sibling* project wrote is still
 # adoptable. That is what keeps a new folder on the human's account without any
 # machine-wide write at all. PSH_NO_ADOPT=1 turns it off.
@@ -188,7 +189,7 @@ install_local_shim() {
   mkdir -p "$bindir" 2>/dev/null || return 0
   {
     printf '#!/usr/bin/env sh\n'
-    printf '# psh.now project command — written by psh-now; safe to delete.\n'
+    printf '# psh.now project command - written by psh-now; safe to delete.\n'
     printf 'PSH_SKILL_DIR="%s"\n' "$SKILL_DIR"
     printf 'export PSH_SKILL_DIR\n'
     printf 'exec sh "%s/scripts/psh.sh" "$@"\n' "$SKILL_DIR"
@@ -200,7 +201,7 @@ install_local_shim() {
 # The machine-wide pieces a finished install leaves behind: the skill copy every later
 # session sees, the agent-dir symlinks, and a `psh` on PATH.
 #
-# install.sh does this on the curl route, but the package route only runs THIS script — so
+# install.sh does this on the curl route, but the package route only runs THIS script - so
 # "I installed it and it didn't install globally" was true by construction (reported
 # 2026-10-17). mw_done below only ever *checked* for these; now something creates them.
 # Every write is best-effort: a sandbox that refuses ~/.agents must leave the project
@@ -214,7 +215,7 @@ mw_shim() {
   command -v psh 2>/dev/null || return 1
 }
 
-# The three pieces a machine-wide install needs, by existence — never by whether this run wrote.
+# The three pieces a machine-wide install needs, by existence - never by whether this run wrote.
 mw_present() {
   [ -d "${GLOBAL_DEST:-$HOME/.agents/skills/psh-now}" ] || return 1
   [ -f "$GLOBAL_DIR/keys.json" ] || return 1
@@ -225,12 +226,12 @@ install_machine_wide() {
   [ "${PSH_NO_GLOBAL:-0}" = 1 ] && return 0
   # Never copy from an unresolved source. Run from outside the skill layout (a script
   # copied to /tmp, a wrapper that does not export PSH_SKILL_DIR), $SKILL_DIR is empty
-  # and the copy becomes `cp -R //. <dest>` — which starts copying the whole
+  # and the copy becomes `cp -R //. <dest>` - which starts copying the whole
   # filesystem (hit for real on 2026-10-17: 53 GB into a temp HOME before it was
   # killed). An empty source is a "cannot do it", never a "copy everything".
   if [ -z "$SKILL_DIR" ] || [ ! -f "$SKILL_DIR/SKILL.md" ]; then
     MW_REFUSED=1
-    echo "psh.now: machine-wide skill skipped — cannot resolve the skill folder (PSH_SKILL_DIR)" >&2
+    echo "psh.now: machine-wide skill skipped - cannot resolve the skill folder (PSH_SKILL_DIR)" >&2
     return 0
   fi
   if [ "$SKILL_DIR" != "$GLOBAL_DEST" ]; then
@@ -242,7 +243,7 @@ install_machine_wide() {
       echo "psh.now: also installed machine-wide: $GLOBAL_DEST" >&2
     else
       MW_REFUSED=1
-      echo "psh.now: machine-wide skill refused — cannot write $GLOBAL_DEST" >&2
+      echo "psh.now: machine-wide skill refused - cannot write $GLOBAL_DEST" >&2
     fi
   fi
 
@@ -258,10 +259,10 @@ install_machine_wide() {
   done
 
   # A `psh` on PATH: the first thing an agent tries. Never hijack a foreign `psh`.
-  #   pass 1 — an existing, writable *user* dir this shell can already see
-  #   pass 2 — ~/.local/bin, created if needed: it is on a normal login PATH, and writing into a
+  #   pass 1 - an existing, writable *user* dir this shell can already see
+  #   pass 2 - ~/.local/bin, created if needed: it is on a normal login PATH, and writing into a
   #            package manager's prefix (/opt/homebrew/bin) makes `brew doctor` grumble
-  #   pass 3 — any existing writable dir on PATH, package manager or not
+  #   pass 3 - any existing writable dir on PATH, package manager or not
   shimdir=""
   if [ -n "${PSH_BIN_DIR:-}" ]; then
     mkdir -p "$PSH_BIN_DIR" 2>/dev/null && shimdir="$PSH_BIN_DIR"
@@ -296,7 +297,7 @@ install_machine_wide() {
   [ -d "$shimdir" ] || mkdir -p "$shimdir" 2>/dev/null || { MW_REFUSED=1; return 0; }
   if {
     printf '#!/usr/bin/env sh\n'
-    printf '# psh.now launcher — one offline screen: what this is, where it lives.\n'
+    printf '# psh.now launcher - one offline screen: what this is, where it lives.\n'
     printf 'PSH_SKILL_DIR="%s"\n' "$GLOBAL_DEST"
     printf 'export PSH_SKILL_DIR\n'
     printf 'exec sh "%s/scripts/psh.sh" "$@"\n' "$GLOBAL_DEST"
@@ -309,7 +310,8 @@ install_machine_wide() {
   return 0
 }
 
-# Parse --join <url> (or --join=<url>).
+# Parse --join <url> (or --join=<url>), or a bare channel link as an argument: the prompts
+# we hand humans say "join <link>", so the link travels as an argument, never as an env var.
 JOIN="${PSH_JOIN:-}"
 want_join=0
 for arg in "$@"; do
@@ -317,6 +319,7 @@ for arg in "$@"; do
   case "$arg" in
     --join) want_join=1 ;;
     --join=*) JOIN="${arg#--join=}" ;;
+  */c/*) if [ -z "$JOIN" ]; then JOIN="$arg"; fi ;;
   esac
 done
 
@@ -334,7 +337,7 @@ if [ -n "$JOIN" ]; then
     200) resp=$(cat "$tmp") ;;
     410|404)
       rm -f "$tmp"
-      echo "psh.now: that connect link is dead (HTTP $code) — it was already used, or the account it" >&2
+      echo "psh.now: that connect link is dead (HTTP $code) - it was already used, or the account it" >&2
       echo "psh.now: pointed at is gone. Do NOT quietly start a new account for the human: ask them" >&2
       echo "psh.now: for a current link (their dashboard: the channel's "Copy prompt for agent" button), or" >&2
       echo "psh.now: run plain ./scripts/setup.sh if they would rather begin a fresh one." >&2
@@ -353,7 +356,7 @@ if [ -n "$JOIN" ]; then
   esac
   rm -f "$tmp"
   # A join writes a *project* file. If it landed on the machine-wide record instead
-  # (which only happens when the folder IS $HOME — Fix G keeps projects out of ~/.psh),
+  # (which only happens when the folder IS $HOME - Fix G keeps projects out of ~/.psh),
   # it must not redefine which channel this machine's asks belong to: the account's own
   # channel survives the join, exactly as its login does.
   machine_channel=""
@@ -364,13 +367,13 @@ if [ -n "$JOIN" ]; then
   fi
   # A join only returns an ask-only channel key. If this machine already owns an
   # account that the host still accepts, keep its account fields (the login)
-  # instead of clobbering them — but drop them when the old key is dead, or the
+  # instead of clobbering them - but drop them when the old key is dead, or the
   # project stays wedged on a credential that 401s.
   # Only a login that belongs to the account we just joined may be carried over, and only
   # fields the join does not itself return. Two bugs lived in the one-line version of this
   # (both hit on a real run, 2026-10-17): a throwaway account minted moments earlier by a
   # wrong install was kept and handed to the human as "your account", and channelUrl was
-  # appended although the join response already carries one — two channelUrl keys in one
+  # appended although the join response already carries one - two channelUrl keys in one
   # object, and JSON is last-wins, so every reader (psh included) then named the wrong
   # channel. The join's own fields always win.
   keep=""
@@ -381,9 +384,9 @@ if [ -n "$JOIN" ]; then
     if [ -z "$olduser" ]; then
       : # nothing stored here that could be a login
     elif [ "$(key_state "$olduser")" = "no" ]; then
-      echo "psh.now: the stored account key is no longer valid — not carrying it over" >&2
+      echo "psh.now: the stored account key is no longer valid - not carrying it over" >&2
     elif [ -n "$oldws" ] && [ -n "$newws" ] && [ "$oldws" != "$newws" ]; then
-      echo "psh.now: the login stored here belongs to another account ($oldws, not $newws) — dropped it" >&2
+      echo "psh.now: the login stored here belongs to another account ($oldws, not $newws) - dropped it" >&2
       echo "psh.now: the account you just joined is the one this project uses now" >&2
     else
       for f in userKey accessUrl claimUrl plan; do
@@ -412,7 +415,7 @@ else
   # A key handed in by the environment (sandbox, CI, a machine with no shared HOME)
   # means we are already connected: write it as this project's channel key instead of
   # minting a second anonymous account. ask.sh and status.sh already honour it, so the
-  # only thing missing was this — "install, then configure the key" used to mint a
+  # only thing missing was this - "install, then configure the key" used to mint a
   # throwaway account first, which is not the account the human watches.
   if [ -n "${PSH_API_KEY:-}" ] && [ ! -f "$KEYS" ]; then
     mkdir -p "$PSH_DIR" 2>/dev/null || true
@@ -421,7 +424,7 @@ else
     # Ask the host which workspace this key belongs to. A record that cannot name its own
     # account made step 4's folder look like a *different* account than the one it is
     # actually asking on (found by the Docker four-step run, 2026-10-17). The key is
-    # ask-only, so /me is the only question it can ask — and it is enough.
+    # ask-only, so /me is the only question it can ask - and it is enough.
     if me_resp=$(curl -fsS --max-time 8 -H "x-psh-key: $PSH_API_KEY" "$HOST/api/v1/me" 2>/dev/null); then
       wsid=$(printf '%s' "$me_resp" | field id)
       pln=$(printf '%s' "$me_resp" | field plan)
@@ -450,11 +453,11 @@ else
     echo "psh.now: using the channel key from \$PSH_API_KEY (no account minted)" >&2
   fi
   # No keys in this project, but this machine may already have an account. Adopt
-  # it (explicitly, and say so) rather than minting a second invisible one — the
+  # it (explicitly, and say so) rather than minting a second invisible one - the
   # whole point is that every project lands on the account the human watches.
   #
-  # The machine record is the canonical source. When a sandbox refused to write one —
-  # the boundary is this workspace, so ~/.psh cannot be created from in here — a
+  # The machine record is the canonical source. When a sandbox refused to write one -
+  # the boundary is this workspace, so ~/.psh cannot be created from in here - a
   # sibling project's record is just as good, and that is what lets the whole flow work
   # with nothing machine-wide at all.
   GLOBAL_DIR="${GLOBAL_DIR:-$HOME/.psh}"
@@ -473,10 +476,10 @@ else
       gw=$(field workspaceId <"$adopt_src")
       cp "$adopt_src" "$KEYS" && chmod 600 "$KEYS"
       echo "psh.now: adopting the account this machine already uses (found in $adopt_src, workspace $gw)" >&2
-      echo "psh.now: (it stays the same account the human already watches — nothing new was minted)" >&2
+      echo "psh.now: (it stays the same account the human already watches - nothing new was minted)" >&2
       # Same account, but its own channel: no channel was given, and sharing the
       # first project's channel would leave the human unable to tell which agent is
-      # asking. The account key stays untouched — only the channel changes.
+      # asking. The account key stays untouched - only the channel changes.
       adopted_user=$(field userKey <"$KEYS")
       if [ -n "$adopted_user" ]; then
         tmp="$PSH_DIR/.channel-response"
@@ -498,12 +501,12 @@ else
               }' "$KEYS" >"$KEYS.newchannel" && mv "$KEYS.newchannel" "$KEYS" && chmod 600 "$KEYS"
             echo "psh.now: this project got its own channel on that account: $newname ($newkey)" >&2
           else
-            echo "psh.now: note: could not create a channel for this project — sharing the account's existing one" >&2
+            echo "psh.now: note: could not create a channel for this project - sharing the account's existing one" >&2
           fi
           rm -f "$tmp"
         else
           rm -f "$tmp"
-          echo "psh.now: note: could not create a channel for this project — sharing the account's existing one" >&2
+          echo "psh.now: note: could not create a channel for this project - sharing the account's existing one" >&2
         fi
       fi
     fi
@@ -517,14 +520,14 @@ else
         # Deleted workspace or rotated key: keep the old file for reference and
         # mint a fresh account instead of 401ing on every ask from now on.
         mv "$KEYS" "$KEYS.stale-$(date +%s)" 2>/dev/null || rm -f "$KEYS"
-        echo "psh.now: the stored key is no longer valid — minting a fresh workspace" >&2
+        echo "psh.now: the stored key is no longer valid - minting a fresh workspace" >&2
         echo "psh.now: the account you reported earlier is void; hand the human the report below" >&2
         resp=$(curl -fsS -X POST "$HOST/api/v1/mint")
         printf '%s\n' "$resp" >"$KEYS"
         chmod 600 "$KEYS"
         ;;
       unknown)
-        echo "psh.now: could not reach $HOST to check the stored key — keeping it" >&2
+        echo "psh.now: could not reach $HOST to check the stored key - keeping it" >&2
         ;;
       *)
         echo "psh.now: already set up ($KEYS)" >&2
@@ -556,7 +559,7 @@ esac
 
 # Rewrite keys.json without fields this version knows to be dead. A leftover
 # field (joinUrl, say) is not harmless: an agent reads it, believes it, and hands
-# the human a link that no longer works. It is a DENY-list on purpose — an
+# the human a link that no longer works. It is a DENY-list on purpose - an
 # allow-list silently drops any field a new host adds, which is worse than the
 # stale field it removes.
 prune_keys() {
@@ -624,7 +627,7 @@ prune_keys
 chmod 600 "$PSH_DIR/config.json"
 
 # The CLI reads ~/.psh/config.json by default. Only fill that in when it is
-# missing or already points at this workspace — clobbering it silently is how a
+# missing or already points at this workspace - clobbering it silently is how a
 # machine-global config ends up naming some other project's deleted workspace.
 if [ "$PSH_DIR" != "$GLOBAL_DIR" ] && [ "${PSH_NO_GLOBAL_CONFIG:-0}" != 1 ]; then
   if mkdir -p "$GLOBAL_DIR" 2>/dev/null; then
@@ -645,14 +648,14 @@ fi
 # project that this one's account is its own.
 readme_body() {
   cat <<EOF
-# psh.now — what this directory is
+# psh.now - what this directory is
 
 psh.now lets an agent ask a human for approval instead of stalling. The agent
 POSTs a short title + message; the human taps Approve or Deny on their phone.
 
   host          $HOST
   keys          $KEYS
-  workspace     ${workspace:-—}
+  workspace     ${workspace:--}
   skill         $SKILL_DIR
   command       psh            (this screen)   psh doctor   psh status   psh ask "Title" "Message"
   how to ask    sh $SKILL_DIR/scripts/ask.sh "Title" "What you are about to do"
@@ -660,7 +663,7 @@ POSTs a short title + message; the human taps Approve or Deny on their phone.
   install       curl -fsSL $HOST/install.sh | sh
   docs          $HOST/setup.md
 
-Rules: never start a second account for a human who already has one — if a
+Rules: never start a second account for a human who already has one - if a
 connect link is dead, say so in one line and ask for a current one. The account
 key is for the dashboard only; keep it out of agent context.
 EOF
@@ -675,7 +678,7 @@ if [ "$PSH_DIR" != "$GLOBAL_DIR" ]; then
   # Guard the redirect: with an unwritable $HOME the *shell* reports a failed
   # `<"$GLOBAL_DIR/keys.json"` on its own stderr (`2>/dev/null` only covers the
   # command, not the redirection), and the agent reads that as "the keys file
-  # errored" — reported as a genuine install failure on 2026-10-17.
+  # errored" - reported as a genuine install failure on 2026-10-17.
   gkey=""
   if [ -f "$GLOBAL_DIR/keys.json" ]; then
     gkey="$(field channelKey <"$GLOBAL_DIR/keys.json" 2>/dev/null || true)"
@@ -684,17 +687,17 @@ if [ "$PSH_DIR" != "$GLOBAL_DIR" ]; then
     if mkdir -p "$GLOBAL_DIR" 2>/dev/null && cp "$KEYS" "$GLOBAL_DIR/keys.json" 2>/dev/null; then
       chmod 600 "$GLOBAL_DIR/keys.json" 2>/dev/null || true
       printf '%s\n' "$HOST" >"$GLOBAL_DIR/host" 2>/dev/null || true
-      echo "psh.now: recorded this machine's account in $GLOBAL_DIR/keys.json (workspace ${workspace:-—})" >&2
+      echo "psh.now: recorded this machine's account in $GLOBAL_DIR/keys.json (workspace ${workspace:--})" >&2
       echo "psh.now: later projects on this machine will join this account instead of starting another" >&2
     fi
   elif [ "$(key_state "$gkey")" = no ]; then
     cp "$KEYS" "$GLOBAL_DIR/keys.json" 2>/dev/null && chmod 600 "$GLOBAL_DIR/keys.json" 2>/dev/null || true
-    echo "psh.now: replaced the dead machine-global account in $GLOBAL_DIR with workspace ${workspace:-—}" >&2
+    echo "psh.now: replaced the dead machine-global account in $GLOBAL_DIR with workspace ${workspace:--}" >&2
   else
     gws="$(field workspaceId <"$GLOBAL_DIR/keys.json")"
     if [ -n "$gws" ] && [ -n "$workspace" ] && [ "$gws" != "$workspace" ]; then
       echo "psh.now: note: this machine already has workspace $gws in $GLOBAL_DIR" >&2
-      echo "psh.now: note: this project uses $workspace — if that is unexpected, the human" >&2
+      echo "psh.now: note: this project uses $workspace - if that is unexpected, the human" >&2
       echo "psh.now: note: should sign in to $HOST/app and keep one of them" >&2
     fi
   fi
@@ -702,12 +705,12 @@ fi
 
 # Writing this README is the last thing setup does, and inside a workspace sandbox
 # $HOME is exactly what is not writable. Under `set -e` a failed redirect aborted the
-# whole script there — so a *successful* install reported exit 1, and agents told the
+# whole script there - so a *successful* install reported exit 1, and agents told the
 # human it had "partially failed". Keep the write inside the `if` condition (where
 # `set -e` does not apply) and guard the directory first.
 if [ "$PSH_DIR" != "$GLOBAL_DIR" ] && mkdir -p "$GLOBAL_DIR" 2>/dev/null && [ -w "$GLOBAL_DIR" ] \
    && cat >"$GLOBAL_DIR/README.md.tmp" 2>/dev/null <<EOF
-# psh.now — this machine
+# psh.now - this machine
 
 psh.now is installed here. It lets an agent ask a human for approval, one tap.
 If a human says "use psh now" / "ask me first", run this first:
@@ -733,23 +736,23 @@ elif [ "$PSH_DIR" != "$GLOBAL_DIR" ]; then
   # "THE MACHINE-WIDE COPY IS NOT" in one breath when the pieces existed but this run's
   # writes were refused (observed 2026-10-17, session a19dd6f2). Existence decides.
   if mw_present; then
-    echo "psh.now: note: this run's write to $GLOBAL_DIR was refused — the sandbox boundary, not an error" >&2
+    echo "psh.now: note: this run's write to $GLOBAL_DIR was refused - the sandbox boundary, not an error" >&2
     echo "psh.now: note: the machine-wide install is ALREADY present, so nothing is missing:" >&2
     echo "psh.now: note:   skill ~/.agents/skills/psh-now · CLI ${psh_cli:-psh} · record $GLOBAL_DIR/keys.json" >&2
     echo "psh.now: note: this project is connected and ready. No ask, no re-run needed." >&2
   else
-    echo "psh.now: note: $GLOBAL_DIR is not writable from here — that is the sandbox boundary, not an error" >&2
+    echo "psh.now: note: $GLOBAL_DIR is not writable from here - that is the sandbox boundary, not an error" >&2
     echo "psh.now: note: this project is installed, connected, and has its own command:" >&2
     echo "psh.now: note:   ./.psh/bin/psh status" >&2
-    echo "psh.now: note: THIS PROJECT IS INSTALLED; THE MACHINE-WIDE COPY IS NOT — missing:" >&2
+    echo "psh.now: note: THIS PROJECT IS INSTALLED; THE MACHINE-WIDE COPY IS NOT - missing:" >&2
     [ -d "${GLOBAL_DEST:-$HOME/.agents/skills/psh-now}" ] || echo "psh.now: note:   ~/.agents/skills/psh-now   the skill every project sees" >&2
     [ -f "$GLOBAL_DIR/keys.json" ] || echo "psh.now: note:   $GLOBAL_DIR/keys.json   keeps every project on ONE account" >&2
     mw_shim >/dev/null 2>&1 || echo "psh.now: note:   ~/.local/bin/psh   the CLI, works from any folder" >&2
     echo "psh.now: note: That is a human step, not a permission to request. Say in one line that" >&2
-    echo "psh.now: note: this install is project-local and unfinished, then route ONE ask —" >&2
+    echo "psh.now: note: this install is project-local and unfinished, then route ONE ask -" >&2
     echo "psh.now: note: psh ask \"Install psh.now globally?\" \"The skill and the psh CLI are" >&2
     echo "psh.now: note: this project's only. Approve and I will install them machine-wide.\"" >&2
-    echo "psh.now: note: — and re-run with the permissions granted. Or the human runs this in" >&2
+    echo "psh.now: note: - and re-run with the permissions granted. Or the human runs this in" >&2
     echo "psh.now: note: their own terminal, from this folder:" >&2
     echo "psh.now: note:   cd \"$(dirname "$PSH_DIR")\" && curl -fsSL $HOST/install.sh | sh" >&2
   fi
@@ -758,7 +761,7 @@ fi
 accessurl=$(field accessUrl <"$KEYS")
 [ -z "$accessurl" ] && [ -n "$user" ] && accessurl="$HOST/app?key=$user"
 
-# Final report — one template that ships inside the skill (report.txt) and is rendered here.
+# Final report - one template that ships inside the skill (report.txt) and is rendered here.
 # It used to be fetched from the host at run time, which meant the text that instructs an agent
 # could change without a version bump and sat outside every digest (audit F7).
 channelname=$(field channelName <"$KEYS")
@@ -768,7 +771,7 @@ cn="${channelname:-Default}"
 # Machine-wide state, decided once and stated in the report. Three pieces are needed for a
 # machine-wide install: the skill every project sees, the `psh` CLI on PATH, and the machine
 # account record that keeps every project on ONE account. The CLI and the skill are equally
-# important — the skill is what tells an agent to ask, the CLI is what it asks with — so a
+# important - the skill is what tells an agent to ask, the CLI is what it asks with - so a
 # project-local install is never described as a complete one (2026-10-17).
 install_machine_wide || true
 
@@ -797,21 +800,21 @@ fi
 if [ "$mw_done" = 1 ]; then
   install_state="**psh.now skill and CLI are installed on this machine.** All of it:
 
-- **skill** — \`~/.agents/skills/psh-now\` — every project on this machine sees it
-- **CLI** — \`$psh_cli\` — works from any folder (\`psh\` when your shell's PATH has that
+- **skill** - \`~/.agents/skills/psh-now\` - every project on this machine sees it
+- **CLI** - \`$psh_cli\` - works from any folder (\`psh\` when your shell's PATH has that
   directory; a sandbox with a short PATH needs the absolute path), and \`psh doctor\` checks it
-- **machine account record** — \`~/.psh/keys.json\` — every project here stays on this one account
-- **this project** — \`$PSH_DIR\`"
+- **machine account record** - \`~/.psh/keys.json\` - every project here stays on this one account
+- **this project** - \`$PSH_DIR\`"
   mw_note=""
 else
-  install_state="**psh.now is installed in this project only — the machine-wide install is NOT done.** Nothing was written outside the workspace:
+  install_state="**psh.now is installed in this project only - the machine-wide install is NOT done.** Nothing was written outside the workspace:
 
-- **this project** — \`$PSH_DIR\` — works right now, through \`$psh_cmd\`
-- **skill every project sees** — \`~/.agents/skills/psh-now\` — skipped
-- **CLI on PATH** — \`~/.local/bin/psh\` — skipped
-- **machine account record** — \`~/.psh/keys.json\` — skipped
+- **this project** - \`$PSH_DIR\` - works right now, through \`$psh_cmd\`
+- **skill every project sees** - \`~/.agents/skills/psh-now\` - skipped
+- **CLI on PATH** - \`~/.local/bin/psh\` - skipped
+- **machine account record** - \`~/.psh/keys.json\` - skipped
 
-The run's last line says \`psh_machine_wide=incomplete\`. The section below is how to finish it —
+The run's last line says \`psh_machine_wide=incomplete\`. The section below is how to finish it -
 one tap on your phone, or one line in your terminal."
   proj_dir="$(dirname "$PSH_DIR")"
   mw_note="## Finish the machine-wide install
@@ -819,12 +822,12 @@ one tap on your phone, or one line in your terminal."
 Everything above already works in this project. Three pieces still need writes the sandbox does
 not allow, so they are not installed yet:
 
-1. the skill every project sees — \`~/.agents/skills/psh-now\`
-2. the \`psh\` CLI on PATH — \`~/.local/bin/psh\`
-3. the machine account record — \`~/.psh/keys.json\` — what keeps every project on this machine
+1. the skill every project sees - \`~/.agents/skills/psh-now\`
+2. the \`psh\` CLI on PATH - \`~/.local/bin/psh\`
+3. the machine account record - \`~/.psh/keys.json\` - what keeps every project on this machine
    on the one account instead of minting a second, invisible one
 
-**One tap.** Your agent sends one request, \u201cInstall psh.now globally?\u201d — approve it and the
+**One tap.** Your agent sends one request, \u201cInstall psh.now globally?\u201d - approve it and the
 agent re-runs the install with the permissions granted. That is the fastest way.
 
 **Or one line**, in your own terminal, from this folder, so the same account is kept:
@@ -840,7 +843,7 @@ test -f ~/.agents/skills/psh-now/SKILL.md && sh ~/.agents/skills/psh-now/scripts
 \`\`\`
 
 (That checks the skill file, then runs the CLI by absolute path. \`command -v psh\` is only a PATH
-test — in a shell with a short PATH it says "missing" for an installed CLI.)
+test - in a shell with a short PATH it says "missing" for an installed CLI.)
 
 Until you run it this is a **project-local** install, and the agent will say exactly that
 rather than call it finished. Nothing else in this report changes when you do: same keys, same
@@ -854,32 +857,27 @@ fi
 # doesn't need that").
 claim_section=""
 if [ -n "$claimurl" ]; then
-  claim_section="## Claim your account — optional, new logins only
+  claim_section="## Claim your account - optional, new logins only
 
 This login is anonymous. Claiming it lets you sign in with an emailed code instead of the key,
-and keeps the fuller allowance — one lifetime allowance per workspace, no daily cap:
+and keeps the fuller allowance - one lifetime allowance per workspace, no daily cap:
 
 $claimurl
 
-Already have a psh.now account? Then skip this — the agent joined the account you already use
+Already have a psh.now account? Then skip this - the agent joined the account you already use
 and there is nothing to claim.
 
 "
 fi
 
-# ONE prompt, handed to any agent — a chat or a sandbox (2026-10-17: there used to be two,
+# ONE prompt, handed to any agent - a chat or a sandbox (2026-10-17: there used to be two,
 # a link one and a key one, and nobody could tell which to paste where). The key decides the
 # account and the channel, so the key form works in both; the link is offered inside the same
 # block for anyone who would rather join that way. Fenced, because prose loses the command.
-cp="Please use psh.now for the \"$cn\" channel: ${channelurl:-<channel-link>}
-Open that link first: it is this channel's instructions. If this folder is not set up yet, these two lines set it up and join this channel — nothing new is minted:
-
-\`\`\`bash
-npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal
-PSH_JOIN=\"${channelurl:-<channel-link>}\" sh ~/.agents/skills/psh-now/scripts/setup.sh
-\`\`\`
-
-Already set up there? Then just fetch the link above and use it as it is."
+# ONE prompt, handed to any agent - a chat or a sandbox. The link is the whole instruction:
+# an installed agent joins it, an uninstalled one installs and then joins. No env vars, no key
+# in the text, and the whole thing stays copyable in one go.
+cp="Please use psh.now and join ${channelurl:-<channel-link>}"
 
 # The report template ships inside the skill (F7): the text that instructs an agent must be
 # versioned with the skill and covered by its digest, not fetched at run time from the host,
@@ -889,7 +887,7 @@ template=""
 [ -n "${SKILL_DIR:-}" ] && [ -f "$SKILL_DIR/report.txt" ] && template=$(cat "$SKILL_DIR/report.txt")
 # awk's gsub reads `&` in the *replacement* as "the matched text", so a value that
 # contains `&&` came out as the placeholder doubled ({machine_wide_note}{machine_wide_note})
-# — caught in the Docker lane on 2026-10-17, the day the note was added. Escape every
+# - caught in the Docker lane on 2026-10-17, the day the note was added. Escape every
 # value rather than banning `&` from the copy, so the next person cannot trip on it.
 esc_repl() { printf '%s' "$1" | sed 's/&/\\&/g'; }
 if [ -n "$user" ] && [ -n "$template" ]; then
@@ -898,7 +896,7 @@ if [ -n "$user" ] && [ -n "$template" ]; then
       CP="$(esc_repl "$cp")" MW="$(esc_repl "$mw_note")" \
       IS="$(esc_repl "$install_state")" CS="$(esc_repl "$claim_section")" \
       PS="$(esc_repl "$psh_cmd")" CH="$(esc_repl "$commands_heading")" \
-      CK="$(esc_repl "${channel:-—}")" CU="$(esc_repl "${claimurl:-—}")" \
+      CK="$(esc_repl "${channel:--}")" CU="$(esc_repl "${claimurl:--}")" \
       DU="$(esc_repl "$HOST/docs")" awk '{
       gsub(/\{account_key\}/, ENVIRON["AK"]);
       gsub(/\{app_url\}/, ENVIRON["AU"]);
@@ -914,11 +912,11 @@ if [ -n "$user" ] && [ -n "$template" ]; then
       print
     }'
 else
-  echo "psh.now: installed ✓ $([ "$mw_done" = 1 ] && echo "(machine-wide: skill + psh CLI + record)" || echo "(this project only — the machine-wide pieces were refused)")"
+  echo "psh.now: installed ✓ $([ "$mw_done" = 1 ] && echo "(machine-wide: skill + psh CLI + record)" || echo "(this project only - the machine-wide pieces were refused)")"
   echo "psh.now: account key   ${user:-<held by the account owner>}"
-  echo "psh.now: channel key   ${channel:-—}"
+  echo "psh.now: channel key   ${channel:--}"
   echo "psh.now: ask with      $psh_cmd ask \"Title\" \"What you are about to do\""
-  [ "$mw_done" = 1 ] || echo "psh.now: project-local install — the machine-wide copy is the human's line: cd \"$(dirname "$PSH_DIR")\" && curl -fsSL $HOST/install.sh | sh"
+  [ "$mw_done" = 1 ] || echo "psh.now: project-local install - the machine-wide copy is the human's line: cd \"$(dirname "$PSH_DIR")\" && curl -fsSL $HOST/install.sh | sh"
   echo "psh.now: open + approve ${accessurl:-$HOST/app}"
 fi
 
@@ -930,7 +928,7 @@ if [ "$mw_done" = 1 ]; then
 else
   echo "psh_machine_wide=incomplete"
   if [ "${PSH_STRICT_MW:-0}" = 1 ]; then
-    echo "psh.now: PSH_STRICT_MW=1 — machine-wide install incomplete, exiting 4" >&2
+    echo "psh.now: PSH_STRICT_MW=1 - machine-wide install incomplete, exiting 4" >&2
     exit 4
   fi
 fi

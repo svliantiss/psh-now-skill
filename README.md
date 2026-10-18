@@ -1,13 +1,13 @@
 # psh.now skill
 
-The installable skill for [psh.now](https://psh.abslm.nl) — human approval for AI
+The installable skill for [psh.now](https://psh.abslm.nl) - human approval for AI
 agents: **approve, deny, or answer**, one request per question. This repository is
 **private**; the psh.now service itself is closed source.
 
 > One host + one key + one answer. Your agent never stalls on a question.
 
 An agent that needs a decision routes it here as a single request on its
-recommended route — a short **title** and a **message** — instead of stopping in a
+recommended route - a short **title** and a **message** - instead of stopping in a
 terminal you can't see. You tap **Approve** or **Deny**, or type an **answer** in
 your own words, from your phone or the dashboard. The agent gets one result back
 and carries on.
@@ -21,37 +21,37 @@ A finished install is **machine-wide** and leaves four pieces in place:
 | the skill every project sees | `~/.agents/skills/psh-now` |
 | the `psh` command on PATH | `~/.local/bin/psh` (or the first writable PATH dir) |
 | this project's keys | `<project>/.psh/keys.json` |
-| the machine account record | `~/.psh/keys.json` — keeps every project on ONE account |
+| the machine account record | `~/.psh/keys.json` - keeps every project on ONE account |
 
 The machine account record is what stops the next folder from minting a second,
 invisible account. The install command carries `-g` for exactly that reason.
 
-**npm — the private repo.** It needs npm, git and GitHub credentials; nothing
+**npm - the private repo.** It needs npm, git and GitHub credentials; nothing
 about it is anonymously readable:
 
 ```bash
-npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal
-sh ~/.agents/skills/psh-now/scripts/setup.sh
+npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal && sh ~/.agents/skills/psh-now/scripts/setup.sh
 ```
 
-The npm install copies files but does **not** mint, so `setup.sh` runs once.
+The npm route only copies files, so the `&&` half mints and sets up in the same command: the
+agent's harness asks for approval once.
 
-**curl — the credential-free route** (no npm, no git, no repo access). It verifies
+**curl - the credential-free route** (no npm, no git, no repo access). It verifies
 every file it downloads against the per-file sha256 manifest it fetches from
 `/.well-known/agent-skills/files.json`, and **refuses** to install when that
-manifest is missing or a file does not match — a refusal, not a warning.
+manifest is missing or a file does not match - a refusal, not a warning.
 `PSH_NO_VERIFY=1` overrides the missing-manifest refusal (and says the install is
 unverified); it does not override a mismatch:
 
 ```bash
-curl -fsSL https://psh.abslm.nl/install.sh | sh
+curl -fsSL https://psh.abslm.nl/install.sh | bash
 ```
 
 Inside a sandbox that can only write the workspace, the machine-wide writes are
 refused. That is **not** a finished install and the run says so:
 `psh_machine_wide=incomplete` as the last line of `setup.sh` (exit 4 with
 `PSH_STRICT_MW=1`), and `MACHINE-WIDE INCOMPLETE` from `install.sh`. The
-project-local copy still works — the skill and `./.psh/bin/psh` inside the folder,
+project-local copy still works - the skill and `./.psh/bin/psh` inside the folder,
 keys in `./.psh/keys.json`. Finish it with **one** ask through psh.now, then a
 re-run with the permissions granted:
 
@@ -94,7 +94,7 @@ The human has three buttons, so one of these comes back:
 ```
 
 Proceed only when `status` is exactly `approved` and `approved` is `true`.
-`answered` is **not** a yes and not a no — it is instruction: read `answer`, do
+`answered` is **not** a yes and not a no - it is instruction: read `answer`, do
 what it says, and if it left the action undecided, ask again. A timeout, a proxy
 error, a `pending` request, or anything else means **do not act**. Silence is
 never consent.
@@ -111,7 +111,7 @@ still wait on the dashboard.
 
 ## Docs
 
-- Full agent contract: [`SKILL.md`](SKILL.md) — also served at <https://psh.abslm.nl/skill.md>
+- Full agent contract: [`SKILL.md`](SKILL.md) - also served at <https://psh.abslm.nl/skill.md>
 - Host docs: <https://psh.abslm.nl/docs>
 - Agent context: <https://psh.abslm.nl/llms.txt> · <https://psh.abslm.nl/llms-full.txt>
 - Agent manifest: <https://psh.abslm.nl/.well-known/agent.json>

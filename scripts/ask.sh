@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# psh.now — route a question to a human before you act or stall.
+# psh.now - route a question to a human before you act or stall.
 #
 #   ./scripts/ask.sh "Title" "What you are about to do" [channel]
 #
@@ -141,7 +141,7 @@ api_key() {
   printf '%s\n' "$HOST" >"$PSH_DIR/host"
   user=$(printf '%s' "$minted" | field userKey)
   # Field order in the mint response: documented `channelKey` first, the
-  # undocumented `apiKey` alias second — accept either, so a response that
+  # undocumented `apiKey` alias second - accept either, so a response that
   # omits `apiKey` still works.
   channel=$(printf '%s' "$minted" | field channelKey)
   [ -n "$channel" ] || channel=$(printf '%s' "$minted" | field apiKey)
@@ -195,7 +195,7 @@ if [ -z "$KEY" ]; then
 fi
 
 # The sign-in link handed to the human. `#key=` signs in a device that has no
-# session yet — no email, no code. app.js refuses to switch an already
+# session yet - no email, no code. app.js refuses to switch an already
 # signed-in browser, so this can never hijack the human's own account.
 user=$(field userKey <"$KEYS" 2>/dev/null || true)
 ACCESS="$HOST/app"
@@ -264,7 +264,7 @@ while :; do
       [ "$(printf '%s' "$resp" | field status)" = "pending" ] || break
       ;;
     401|403)
-      echo "psh.now: key rejected (HTTP $code) while waiting — the account may be gone or the key revoked. Re-run setup.sh." >&2
+      echo "psh.now: key rejected (HTTP $code) while waiting - the account may be gone or the key revoked. Re-run setup.sh." >&2
       break
       ;;
     404)
@@ -287,7 +287,7 @@ status=$(printf '%s' "$resp" | field status)
 [ -n "$status" ] && echo "psh_result.status=$status" >&2
 
 # The human has three buttons now: Approve, Deny, and Answer. An answer is
-# neither — it is free text ("use staging", "yes but not yet on prod") that the
+# neither - it is free text ("use staging", "yes but not yet on prod") that the
 # agent is expected to read and act on. Surface it plainly, on stderr, so it is
 # impossible to miss in a scrollback.
 answer=$(printf '%s' "$resp" | field answer)
@@ -298,5 +298,5 @@ if [ "$status" = "answered" ] || [ -n "$answer" ]; then
   echo "  → read it and follow it; do not treat it as a bare yes." >&2
 fi
 if [ "$(printf '%s' "$resp" | boolfield approved)" != "true" ] && [ "$status" != "answered" ] && printf '%s' "$created" | grep -q '"onlineDevices":0'; then
-  echo "psh.now: no device is paired yet — open $ACCESS and the request is waiting there" >&2
+  echo "psh.now: no device is paired yet - open $ACCESS and the request is waiting there" >&2
 fi

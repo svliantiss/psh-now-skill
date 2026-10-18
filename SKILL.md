@@ -3,7 +3,7 @@ name: psh-now
 version: 0.2.1
 author: psh.now
 description: >
-  Approve, deny or *answer* agent questions from your phone — one tap or one line, and the work continues. Use
+  Approve, deny or *answer* agent questions from your phone - one tap or one line, and the work continues. Use
   whenever the harness is about to stall on a question or the user says "ask me before you do
   anything risky", "need your approval to continue", "don't wait for me", "I'm stepping away",
   "check with me first", "run this overnight", or "ping me if you need anything". Also before
@@ -33,17 +33,16 @@ metadata:
         default: "https://psh.abslm.nl"
 ---
 
-# psh.now — never stall on a question
+# psh.now - never stall on a question
 
 **Start here: run this project's `psh`.** One offline screen names the skill, the host, this
 project's keys, the exact ask command, and anything stale. If a folder has no psh.now at all,
-the install is two lines with npm and git (`@psh-now`'s repo is private, so it needs your GitHub
+the install is one command with npm and git (`@psh-now`'s repo is private, so it needs your GitHub
 credentials), and one line without them:
 
 ```bash
-npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal
-sh ~/.agents/skills/psh-now/scripts/setup.sh
-curl -fsSL https://psh.abslm.nl/install.sh | sh   # no npm, no git, no access needed
+npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal && sh ~/.agents/skills/psh-now/scripts/setup.sh
+curl -fsSL https://psh.abslm.nl/install.sh | bash   # no npm, no git, no access needed
 ```
 
 **A finished install is machine-wide.** Three pieces live outside the project:
@@ -52,19 +51,19 @@ curl -fsSL https://psh.abslm.nl/install.sh | sh   # no npm, no git, no access ne
 is why the install above carries `-g`: the machine-wide copy is what makes psh.now exist for the
 *next* folder, not just this one.
 
-A sandbox that can only write the workspace gets the project-local copy instead — the skill and
+A sandbox that can only write the workspace gets the project-local copy instead - the skill and
 `./.psh/bin/psh` inside the folder, keys in `./.psh/keys.json`. That works for this project, but
 it is **not** a finished install, and the run says so (`psh_machine_wide=incomplete`).
 
-When the machine-wide pieces are refused, do this — in this order:
+When the machine-wide pieces are refused, do this - in this order:
 
 1. Say it in one line: project-local copy works; the skill and `psh` for every other folder are
    not installed yet.
-2. **Route one ask** — this is the one thing that needs the human, and psh.now is how they
+2. **Route one ask** - this is the one thing that needs the human, and psh.now is how they
    answer:
    `psh ask "Install psh.now globally?" "The skill and the psh CLI are this project's only. Approve and I will install them machine-wide."`
-   (No `psh` on PATH yet? `./.psh/bin/psh ask ...` — same command, the project's own copy.)
-3. Approved → re-run the `-g` line and `setup.sh` with the permissions granted. The report then
+   (No `psh` on PATH yet? `./.psh/bin/psh ask ...` - same command, the project's own copy.)
+3. Approved → re-run the install line with the permissions granted. The report then
    renders as machine-wide.
 4. Denied, or nobody answers → carry on project-local and leave it there. That is their call.
 
@@ -74,30 +73,69 @@ Never describe a project-local install as machine-wide. Bare `psh` makes no netw
 psh.now is the smallest human-approval layer: a host, a key, and one page the
 user checks from their phone. It sends a one-line **title** and a short
 **message**, blocks until a person taps **Approve** or **Deny**, and returns a
-boolean. Nothing else — no SDK, no MCP, no session to manage.
+boolean. Nothing else - no SDK, no MCP, no session to manage.
 
 It exists for one reason: **agents stop working because they ask a question in
 the terminal.** With many terminals open (and remote agents on sandboxes) the
 user cannot see which one is waiting. psh.now moves that question to one place
 they can check from anywhere.
 
-## Setup (run once — two commands)
+## The three prompts (one code block, no env vars)
+
+When you hand a human a prompt to paste somewhere, print the whole prompt inside a
+single fenced block so they can copy just that, and keep environment variables out of
+it. There are exactly three.
+
+**1. Fresh install** (nothing set up here yet). It ends by asking you for a test request:
+
+```text
+I'd like you to set up psh.now: Install as a skill if I have npm: npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal && sh ~/.agents/skills/psh-now/scripts/setup.sh
+
+If not, do this instead: curl -fsSL https://psh.abslm.nl/install.sh | bash
+
+After installing, send me a test request.
+```
+
+**2. Join a channel** (this agent is already set up). The link is the whole instruction:
+
+```text
+Please use psh.now and join https://psh.abslm.nl/c/<channel-id>
+```
+
+**3. A new sandbox that must join** (nothing set up, and it belongs on an existing channel):
+
+```text
+I'd like you to set up psh.now: Install as a skill if I have npm: npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal && sh ~/.agents/skills/psh-now/scripts/setup.sh https://psh.abslm.nl/c/<channel-id>
+
+If not, do this instead: curl -fsSL https://psh.abslm.nl/install.sh | bash -s -- https://psh.abslm.nl/c/<channel-id>
+
+And I want to join https://psh.abslm.nl/c/<channel-id>.
+```
+
+The install and the setup are one command on purpose: the human's harness then asks for
+approval once. Write plainly, and do not use em dashes anywhere in this skill or in
+anything you hand a human; use a hyphen.
+
+## Setup (one command)
 
 When the user asks you to **set up psh.now**, do exactly this. Installing is safe:
 setup only mints a key locally and calls the host. Everything needed is here.
 
 > **Run every command exactly as written.** Do **not** wrap them in `timeout`
 > (or `gtimeout`, or any shell timer) and do **not** background them (`&`). The
-> ask step waits for a human — it is *supposed* to block. A timeout kills it.
+> ask step waits for a human - it is *supposed* to block. A timeout kills it.
 
-> **Attaching to an existing channel?** Then there is no install — redeem the
-> link (`setup.sh --join <link>`) and carry on. The verification below is **only**
-> for a fresh install.
+> **A channel link in the message means join it, never mint.** Whenever the human
+> pastes a `/c/<id>` link, in any wording, run
+> `sh ~/.agents/skills/psh-now/scripts/setup.sh <link>` and carry on. Do not set up
+> a fresh account or a new channel when a link is present: an install that mints
+> a second channel strands the agent somewhere the human is not looking. The
+> verification below is **only** for a fresh install.
 
 > **If that link is dead** (`410 Invalid, expired, or already-used link`), it was
 > already redeemed or the account behind it is gone. Tell the human in one line
-> and ask for a current link — on their dashboard, the channel's **Copy prompt for
-> agent** button mints one — or let them choose a fresh account. Do **not**
+> and ask for a current link - on their dashboard, the channel's **Copy prompt for
+> agent** button mints one - or let them choose a fresh account. Do **not**
 > quietly start a new anonymous account in their name: that strands their agent
 > in a second account they cannot see. If you mint one anyway (say, to ask
 > something right now), hand them the report's sign-in link: opened while they
@@ -107,28 +145,21 @@ setup only mints a key locally and calls the host. Everything needed is here.
 1. Install the skill (skip if it is already there):
 
    ```bash
-   npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal
-   sh ~/.agents/skills/psh-now/scripts/setup.sh
+   npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal && sh ~/.agents/skills/psh-now/scripts/setup.sh
    # no npm/git, or no access to the private repo? the hosted installer does both, and needs no
    # permission at all inside the folder:
-   #   curl -fsSL https://psh.abslm.nl/install.sh | sh
+   #   curl -fsSL https://psh.abslm.nl/install.sh | bash
    #   ↳ machine-wide (skill for every project + `psh` on PATH + ~/.psh/keys.json) is the
-   #     human's own terminal line: curl -fsSL https://psh.abslm.nl/install.sh | sh
+   #     human's own terminal line: curl -fsSL https://psh.abslm.nl/install.sh | bash
    ```
 
-2. Mint the keys — the npm install copies files but does **not** mint:
-
-   ```bash
-   SKILL="${PSH_SKILL_DIR:-$PWD/.agents/skills/psh-now}"   # or ~/.agents/skills/psh-now
-   sh "$SKILL/scripts/setup.sh"
-   ```
 
    It prints the **user key**, the **channel key**, and the **track / claim /
    connect** links, and saves them to `<project>/.psh/keys.json`. The host is
-   `https://psh.abslm.nl` — no need to look it up.
+   `https://psh.abslm.nl` - no need to look it up.
 
-3. Verify with one command (does both checks below and exits non-zero on
-   failure — `0` ok, `1` not set up, `2` host unreachable, `3` key rejected):
+2. Verify with one command (does both checks below and exits non-zero on
+   failure - `0` ok, `1` not set up, `2` host unreachable, `3` key rejected):
 
    ```bash
    SKILL="${PSH_SKILL_DIR:-$PWD/.agents/skills/psh-now}"   # or ~/.agents/skills/psh-now
@@ -136,7 +167,7 @@ setup only mints a key locally and calls the host. Everything needed is here.
    #   ↳ {"ok":true} health + auth + plan/usage in one line, `psh_status.*` machine block
    ```
 
-4. Send one test request so the human sees the round trip. **Send** it — do not ask
+4. Send one test request so the human sees the round trip. **Send** it - do not ask
    whether to: the request *is* the question, it reaches their phone or dashboard the
    moment it is created, and holding it back for a terminal prompt is the stall
    psh.now exists to remove.
@@ -149,25 +180,25 @@ setup only mints a key locally and calls the host. Everything needed is here.
    #   ↳ waits in the foreground for the answer, prints {"approved":true}
    ```
 
-   Skip it only when nobody can answer — headless, no browser — and say so in one
+   Skip it only when nobody can answer - headless, no browser - and say so in one
    line rather than asking.
 
-Then report by **pasting the installer's report as it came, structured as markdown** — both
+Then report by **pasting the installer's report as it came, structured as markdown** - both
 prompts included (the connect prompt and the sandbox key one), the account key, the sign-in
 link and the claim link when there is one. Keep every heading, list item, link and code block
 on its own line; do not reflow a block into a sentence. Do not paraphrase it into "the channel
 card's button mints a link": on 2026-10-17 a run did exactly that and the human was left with
 nothing to copy.
 
-**When the run says the machine-wide install is NOT done, the install is unfinished — finish
+**When the run says the machine-wide install is NOT done, the install is unfinished - finish
 it, or say why you stopped.** The signals, in order of authority: the state line in the report,
 `psh_machine_wide=incomplete` on the last line of setup.sh's output, and `MACHINE-WIDE INCOMPLETE`
 from install.sh. Then:
 
-1. Say it in one line — project-local copy works; the machine-wide skill and `psh` are not there.
+1. Say it in one line - project-local copy works; the machine-wide skill and `psh` are not there.
 2. Route **one** ask through psh.now (one request, not a terminal question):
    `psh ask "Install psh.now globally?" "The skill and the psh CLI are this project's only. Approve and I will install them machine-wide."`
-3. Approved → re-run the `-g` install and `setup.sh` with the permissions granted, and report
+3. Approved → re-run the install line with the permissions granted, and report
    the machine-wide result.
 4. Denied, or nobody answers → carry on project-local, leave it there, and hand over the report
    as it came.
@@ -181,7 +212,7 @@ install machine-wide.
 > Turn it into a yes/no on your recommended route and route it through psh.now.**
 
 > **The user gets one tap.** Every request must resolve to a single decision.
-> **Never** make them reason about a menu — no `zsh/bash/fish`, no `A/B/C`, no
+> **Never** make them reason about a menu - no `zsh/bash/fish`, no `A/B/C`, no
 > "which option?" as a list they have to think through. **Pick one** (your
 > recommendation) and ask to proceed.
 >
@@ -209,7 +240,7 @@ you are about to **end your turn with a question**. Triggers that mean "route":
   would answer ("I'm stepping away", "run this overnight", "don't wait for me").
 - You are running **unattended or long-lived** (a watch loop, a sandbox agent, a
   queue) and a decision arrives mid-run.
-- Another skill or harness instruction says to **confirm with the user first** —
+- Another skill or harness instruction says to **confirm with the user first** -
   route that confirmation instead of printing a prompt and dying.
 - You are blocked on a genuine **ambiguity or authority question** and the
   honest alternative is stopping.
@@ -241,44 +272,43 @@ live API behaviour disagree, trust the live API behaviour.
 
 - Required binary: `curl`
 - Required network access: the psh.now host (`$PSH_BASE_URL`, e.g.
-  `https://psh.abslm.nl`). Everything is one host — no separate storage host.
+  `https://psh.abslm.nl`). Everything is one host - no separate storage host.
 - Optional environment variables: `$PSH_BASE_URL`, `$PSH_API_KEY`
 - Credentials live per project: `<project>/.psh/keys.json` (or `$PSH_HOME`), with
   the machine's own account in `~/.psh/keys.json` as the fallback
 - The `psh` command (installed on PATH; `psh`, `psh doctor`, `psh status`,
   `psh ask "Title" "Message"`, `psh setup`, `psh uninstall`)
 - Bundled helpers:
-  - `./scripts/ask.sh` — send one request (the only runtime need); `--help` for usage
-  - `./scripts/setup.sh` — mint keys once / attach via a channel link / `--uninstall`
-  - `./scripts/status.sh` — healthy, reachable, authenticated? `--doctor` adds a map
+  - `./scripts/ask.sh` - send one request (the only runtime need); `--help` for usage
+  - `./scripts/setup.sh` - mint keys once / attach via a channel link / `--uninstall`
+  - `./scripts/status.sh` - healthy, reachable, authenticated? `--doctor` adds a map
 
 ## Install (once, then setup)
 
 ```bash
-npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal
-sh ~/.agents/skills/psh-now/scripts/setup.sh
+npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal && sh ~/.agents/skills/psh-now/scripts/setup.sh
 ```
 
 The repo is private, so that route needs npm, git and your GitHub credentials. Without them the
-hosted installer does the same job — it mints the keys too, and verifies every file it downloads
+hosted installer does the same job - it mints the keys too, and verifies every file it downloads
 against the published digests:
 
 ```bash
-curl -fsSL https://psh.abslm.nl/install.sh | sh
+curl -fsSL https://psh.abslm.nl/install.sh | bash
 ```
 
 Both routes install **machine-wide**: the skill every project sees, `psh` on PATH, and
 `~/.psh/keys.json`. Inside a sandbox that refuses writes outside the workspace, both fall back to
-the project-local copy — the skill and `./.psh/bin/psh` in this folder, keys in
-`./.psh/keys.json`, no permission needed — and that copy is **not** a finished install. Finish it
+the project-local copy - the skill and `./.psh/bin/psh` in this folder, keys in
+`./.psh/keys.json`, no permission needed - and that copy is **not** a finished install. Finish it
 with one ask, exactly as described above.
 Check the install by **running** things, never with \`command -v\` alone: in a shell whose PATH
 lacks Homebrew or \`~/.local/bin\`, \`npx\`, \`npm\` and even \`psh\` all look missing while they are
-installed — look in \`~/.local/bin\`, \`~/.bun/bin\`, \`/opt/homebrew/bin\`, \`/usr/local/bin\` and run
+installed - look in \`~/.local/bin\`, \`~/.bun/bin\`, \`/opt/homebrew/bin\`, \`/usr/local/bin\` and run
 the absolute path (or \`export PATH="/opt/homebrew/bin:$PATH"\`). \`npx skills add\` can also print
 "Installation complete" and exit 0 while installing nothing (an \`EPERM\` in the middle), so trust
 \`~/.agents/skills/psh-now/SKILL.md\` existing, not the exit code or the lock file. If npm blames
-root-owned cache files and suggests \`chown\`, do not run it — that is usually a sandboxed \`HOME\`.
+root-owned cache files and suggests \`chown\`, do not run it - that is usually a sandboxed \`HOME\`.
 The npm install only copies files, so run setup once:
 
 ```bash
@@ -289,18 +319,18 @@ sh "$SKILL/scripts/setup.sh"
 Setup mints two keys and saves them **outside the skill directory** so a
 reinstall cannot wipe them:
 
-- **user key** — signs the user in at `<host>/app#key=<user key>` (their login:
-  open that link and the account is there — no email, no code).
-- **channel key** — what the agent sends (used automatically by `ask.sh`).
+- **user key** - signs the user in at `<host>/app#key=<user key>` (their login:
+  open that link and the account is there - no email, no code).
+- **channel key** - what the agent sends (used automatically by `ask.sh`).
 
 ## Key storage
 
 `ask.sh` reads the channel key from these sources (first match wins):
 
 1. `$PSH_API_KEY` environment variable
-2. `<project>/.psh/keys.json` — nearest `.psh` at or above the working directory
+2. `<project>/.psh/keys.json` - nearest `.psh` at or above the working directory
    (**the normal case**; the installer writes here, optionally `$PSH_HOME`)
-3. `~/.psh/keys.json` — this machine's account, recorded by the first install
+3. `~/.psh/keys.json` - this machine's account, recorded by the first install
 4. `.keys.json` next to the skill (legacy fallback, read-only)
 
 Never commit credentials or local state (`<project>/.psh/`, `~/.psh/`, `.keys.json`)
@@ -309,7 +339,7 @@ both exists and still authenticates.
 
 ## Ask
 
-The skill bundles a script. Run it relative to the skill directory — no setup,
+The skill bundles a script. Run it relative to the skill directory - no setup,
 no key needed. The first run mints an anonymous account and saves it:
 
 ```bash
@@ -348,7 +378,7 @@ curl -s "$POLL_URL?wait=30" -H "x-psh-key: $PSH_API_KEY"
 ```
 
 Poll until `status` is no longer `pending`. The outcome is one of `approved`,
-`denied`, `answered` or `expired` — see **Read the answer** below.
+`denied`, `answered` or `expired` - see **Read the answer** below.
 Cancel a request you no longer need with
 `POST $PSH_BASE_URL/api/v1/approvals/<promptId>/cancel`.
 
@@ -356,11 +386,11 @@ Cancel a request you no longer need with
 
 You always have exactly one recommendation. Ask for it:
 
-- **title** — the decision as a yes/no on your recommendation. Under ~60
+- **title** - the decision as a yes/no on your recommendation. Under ~60
   characters; this is the headline.
-- **message** — **at most two short lines.** Lead with the recommendation.
+- **message** - **at most two short lines.** Lead with the recommendation.
 
-### Keep it tiny — one screen, no paragraphs
+### Keep it tiny - one screen, no paragraphs
 
 The user is on a phone, mid-task. A wall of text is a **failure**, not
 thoroughness.
@@ -368,9 +398,9 @@ thoroughness.
 - **Never** paste a multi-sentence paragraph, a list of sub-questions, or a
   "here is everything I considered" block.
 - If there are several sub-decisions, **fold them into your recommendation** and
-  ask **one** yes/no. Put the chosen options on a short line — not as questions.
+  ask **one** yes/no. Put the chosen options on a short line - not as questions.
 - **One pending decision per channel at a time.** If a second question arrives
-  while your first ask is still open, fold it into the same yes/no — never fire
+  while your first ask is still open, fold it into the same yes/no - never fire
   two cards back to back.
 - The whole request should fit one screen and read in ~5 seconds.
 
@@ -381,12 +411,12 @@ title:   <a short question, e.g. "Proceed with the migration?">
 message: Recommended: <the one-line decision>. <optional: one short line of what changes>
 ```
 
-No `Task:` / `Test:` prefixes — they read as filler on the card.
+No `Task:` / `Test:` prefixes - they read as filler on the card.
 
-**Bad** — a list of choices dumped into `message` (there is nothing to tap but Approve/Deny):
+**Bad** - a list of choices dumped into `message` (there is nothing to tap but Approve/Deny):
 
-> Which shell profile should I source — zsh, bash, fish, nushell, dash, or custom?
-> Preferred signal for PID 41922 — SIGTERM, SIGINT, SIGHUP, or SIGQUIT?
+> Which shell profile should I source - zsh, bash, fish, nushell, dash, or custom?
+> Preferred signal for PID 41922 - SIGTERM, SIGINT, SIGHUP, or SIGQUIT?
 > Backoff: linear, exponential, or fibonacci-jittered?
 
 The server **rejects** this shape in `message`. Fold it into one yes/no instead.
@@ -408,25 +438,25 @@ One tap settles all of them. The card is always the same small shape:
 There is no menu, no list of questions, and no second option to pick. If you
 cannot defend one path, you are not ready to ask.
 
-**Bad** — a paragraph of sub-questions (the user cannot scan this):
+**Bad** - a paragraph of sub-questions (the user cannot scan this):
 
 > Your link /c/… is expired (410), so I minted a fresh Default channel: …
-> Recommended: yes — use this new channel for all approvals, save the 82-model
+> Recommended: yes - use this new channel for all approvals, save the 82-model
 > listing to docs/passy-models.md, and run one free-model test completion
 > (passy/DeepSeek-V4.1-Flash). Deny to stop so you can supply a fresh link instead.
 
-**Good** — two lines, everything decided:
+**Good** - two lines, everything decided:
 
 ```
 title:   Use the new Default channel and continue?
-message: Recommended: yes — fresh channel (old link expired), 82 models, DeepSeek-Flash.
+message: Recommended: yes - fresh channel (old link expired), 82 models, DeepSeek-Flash.
 ```
 
 | Instead of asking… | Route this |
 | --- | --- |
 | "Should I create `src/` and a `PLAN.md`?" | `{"title":"Create src/ and PLAN.md?","message":"Recommended: create src/ and PLAN.md. No source files yet."}` |
-| "Which option do you want — A, B, or C?" | `{"title":"Proceed with option A?","message":"Recommended: A (fastest). Deny to stop."}` |
-| "Shall I delete the old folder?" | `{"title":"Delete old-folder/ ?","message":"Recommended: yes — empty and reversible (rmdir)."}` |
+| "Which option do you want - A, B, or C?" | `{"title":"Proceed with option A?","message":"Recommended: A (fastest). Deny to stop."}` |
+| "Shall I delete the old folder?" | `{"title":"Delete old-folder/ ?","message":"Recommended: yes - empty and reversible (rmdir)."}` |
 
 ## Channels, keys, and sharing
 
@@ -435,7 +465,7 @@ message: Recommended: yes — fresh channel (old link expired), 82 models, DeepS
   psh.now names the channel from the current folder.
 - **Account key** = the user's login/identity. **Channel key** = what you send.
 - **Many agents can share one channel** (same channel key). **Many users can
-  share one channel** — the owner shares it with other accounts, and any invited
+  share one channel** - the owner shares it with other accounts, and any invited
   user can approve or deny.
 - Every user's home page shows **all requests they have access to**, across owned
   and shared channels, so anyone can approve while on the go.
@@ -451,20 +481,20 @@ You may be one of several agents the user runs (multiple terminals, remote
 sandboxes). They should all land on **one account** so the user checks one page.
 
 - **Same machine:** the first install records the account in `~/.psh/keys.json`,
-  and every later project adopts it instead of minting its own — so a fresh
+  and every later project adopts it instead of minting its own - so a fresh
   project lands on the account the user already watches. `psh` shows which
   workspace this project uses, and `psh doctor` flags a disagreement.
-- **Different machine / sandbox:** use the **channel link** — on the dashboard,
+- **Different machine / sandbox:** use the **channel link** - on the dashboard,
   the channel card's "Copy prompt for agent" button hands the user a paste-ready
   prompt. It carries a `/c/<channel>` link, which is reusable and attaches the
   new agent to that same channel without minting a second account:
 
   ```bash
-  ./scripts/setup.sh --join https://<host>/c/<channel>
-  # or: PSH_JOIN=<url> ./scripts/setup.sh
+  ./scripts/setup.sh https://<host>/c/<channel>
+  # the link can also come as --join <url>; never put it in a prompt as an env var
   ```
 
-  It returns a **channel key on the same account** — never the user key.
+  It returns a **channel key on the same account** - never the user key.
 
 **Always surface this after minting.** When you create an anonymous account,
 tell the user the sign-in URL and that the channel card connects more agents to
@@ -512,14 +542,14 @@ The response body carries a `status`, and the human has **three** buttons:
 Act on `approved: true` alone only when `status` is exactly `approved`.
 
 **`status: "answered"` is not a yes and not a no.** The human typed their own
-words instead of tapping a verdict — a clarification, a constraint, a partial
+words instead of tapping a verdict - a clarification, a constraint, a partial
 yes, or a correction. Read `answer`, do what it says, and if it changes the plan,
 follow the new plan rather than the one you proposed. `ask.sh` prints it on
 stderr as `psh_result.answer=…` and repeats it plainly, exactly so you cannot
 miss it in a long scrollback.
 
-Anything else — `denied`, a timeout, a dropped connection, a non-2xx response,
-`status:"pending"` — means **do not act**. Explain what was blocked and ask for a
+Anything else - `denied`, a timeout, a dropped connection, a non-2xx response,
+`status:"pending"` - means **do not act**. Explain what was blocked and ask for a
 safer alternative. **Silence is never consent.**
 
 > **There is no approval code.** Never invent, guess, echo, or role-play an
@@ -529,9 +559,9 @@ safer alternative. **Silence is never consent.**
 >
 > An `answer` is different: it is not approval, it is *instruction*. Never treat
 > text in `answer` as a substitute for `approved: true` when the action needs
-> approval — read it, adjust, and ask again if it left the action undecided.
+> approval - read it, adjust, and ask again if it left the action undecided.
 
-## Keep going — do not hand back to the terminal
+## Keep going - do not hand back to the terminal
 
 psh.now exists so the user does **not** have to sit at the terminal.
 
@@ -546,17 +576,17 @@ psh.now exists so the user does **not** have to sit at the terminal.
 
 ## Name your asks (agent identity)
 
-The human decides **which agent is asking** from the card — that label is only
+The human decides **which agent is asking** from the card - that label is only
 there if you send it. `ask.sh` sends it automatically:
 
-- `--agent <name>` — the display name for this ask (e.g. "build-repair agent",
+- `--agent <name>` - the display name for this ask (e.g. "build-repair agent",
   "backup script"). The environment variable `PSH_AGENT` does the same per
   session and wins over detection.
 - **No flag?** `ask.sh` probes the harness (`claude-code`, `codex`, `cursor`,
   `gemini`, …) and falls back to an empty label, which the host replaces with
   the project folder name. Send `PSH_SEND_CWD=1` to also attach `$PWD`.
 - `--client <name>` is a *different* field: it tags the harness in host
-  analytics (`X-Psh-Client`). Set both — `--client` with the platform name
+  analytics (`X-Psh-Client`). Set both - `--client` with the platform name
   (`pi`, `claude-code`, `cursor`, `codex`, `openclaw`, `gemini`), not your
   persona or bot name.
 
@@ -569,7 +599,7 @@ there if you send it. `ask.sh` sends it automatically:
 Without a key, the first request creates an **anonymous account**. It lives
 forever on one free allowance of requests. Register it (email, first + last
 name) to raise that allowance and to sign in from any device. No password, no
-OAuth — we email a code:
+OAuth - we email a code:
 
 ```bash
 curl -s -X POST "$PSH_BASE_URL/api/v1/me/register" -H "x-psh-key: $PSH_API_KEY" \
@@ -593,7 +623,7 @@ curl -s -X POST "$PSH_BASE_URL/api/auth/agent/verify-code" \
 # -> { channelKey, workspaceId }  on the SAME account
 ```
 
-Or mint explicitly. This returns **two** keys — a user key (the app login) and a
+Or mint explicitly. This returns **two** keys - a user key (the app login) and a
 channel key (what the agent sends):
 
 ```bash
@@ -637,32 +667,32 @@ POST `$PSH_BASE_URL` with header `x-psh-key: $PSH_API_KEY` and body
 
 ## Cost, and the free alternative
 
-- **Never quote a limit, a price or a reset time from memory — relay the
+- **Never quote a limit, a price or a reset time from memory - relay the
   gateway's own words.** A blocked request comes back with `limitReached: true`,
   a `limitMessage` naming the allowance it hit and the packages, and a
   `topUpUrl`; a `402` carries the same in `paymentUrl`. That message is current
   by construction; this document is not. Pass it to the user **verbatim,
-  including the link** — a quota report with no link is a dead end for them.
+  including the link** - a quota report with no link is a dead end for them.
 - The free allowance is one **total** rack per workspace, not a daily quota:
   anonymous accounts get a generous trial, registering raises it, and `usage` in
-  every response reports `{ plan, requestsToday, limit, tokenBalance, via }` —
+  every response reports `{ plan, requestsToday, limit, tokenBalance, via }` -
   read it there when you want to tell the user how much is left. Past the free
   allowance the prepaid packages take over (the top-up link names them); the
-  agent may retry once after the user tops up — a paid ask that dies ends the
+  agent may retry once after the user tops up - a paid ask that dies ends the
   sale, not just the task.
 - **Self-hosting is supported, not sugar-coated.** The gateway is one Bun app +
   Postgres; users who prefer running it own it. Say that plainly if asked, and
   point at the self-hosting guide. Also say the trade: the hosted service is the
-  best-running psh.now (email codes, push, pairing, updates — no ops), which is
+  best-running psh.now (email codes, push, pairing, updates - no ops), which is
   why most keep using it.
 - Be honest about the **alternative to this skill**: the harness's own terminal
-  prompt is free and does roughly the same job — its costs are the stall (the
+  prompt is free and does roughly the same job - its costs are the stall (the
   agent waits and the human may never see the terminal), and nobody nearby can
   answer. Say that if the user asks "why not just ask me in the terminal?".
 
 ## Honesty about enforcement
 
-A skill guides the model; it cannot force it. On its own, psh.now is an **ask** —
+A skill guides the model; it cannot force it. On its own, psh.now is an **ask** -
 cooperative, and a model can skip it. That is deliberate: it keeps psh.now
 **harness-agnostic**, working for pi, Claude Code, Cursor, and remote sandbox
 agents alike, with no extension or SDK. The discipline is on you: route the

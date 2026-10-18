@@ -1,4 +1,4 @@
-## Agent: how to hand this over — read first, do not hand this section over
+## Agent: how to hand this over - read first, do not hand this section over
 
 - Hand the human **everything below the cut line**, verbatim, as markdown: same headings,
   same order, every list item, link and code block on its own line. Never reflow a block into
@@ -17,18 +17,18 @@
 
 {install_state}
 
-## Sign in — no email, no code
+## Sign in - no email, no code
 
 {app_url}
 
 That link carries your account key, and the key is your sign-in on any device. Already signed
-in to another psh.now account? Opening it adds this agent to that account instead — its
+in to another psh.now account? Opening it adds this agent to that account instead - its
 requests then appear in the dashboard you already use, and the agent keeps working.
 
 ## Your keys
 
-- **account key** — `{account_key}`
-- **channel key** — `{channel_key}`
+- **account key** - `{account_key}`
+- **channel key** - `{channel_key}`
 
 Keep them somewhere safe. The agent's workspace has the same pair in `.psh/keys.json`.
 
@@ -41,15 +41,15 @@ and the round trip is proven. Nothing else is needed from you.
 
 {commands_heading}
 
-- `{psh_command}` — one screen: the skill, the host, your keys, the next command
-- `{psh_command} doctor` — checks it end to end
-- `{psh_command} ask "Title" "What you are about to do"` — send a request by hand
+- `{psh_command}` - one screen: the skill, the host, your keys, the next command
+- `{psh_command} doctor` - checks it end to end
+- `{psh_command} ask "Title" "What you are about to do"` - send a request by hand
 
 How it all works: {docs_url}
 
-## Copy this prompt into any agent — a chat, or a sandbox
+## Copy this prompt into any agent - a chat, or a sandbox
 
-One prompt, both places — a chat or a sandbox: it carries this channel's link, so the agent joins
+One prompt, both places - a chat or a sandbox: it carries this channel's link, so the agent joins
 with it and nothing new is minted. The link is **ask-only** and reusable.
 
 {connect_prompt}
@@ -58,15 +58,15 @@ with it and nothing new is minted. The link is **ask-only** and reusable.
 
 ---
 
-## Rules of thumb for the agent — not part of the hand-over
+## Rules of thumb for the agent - not part of the hand-over
 
 - One request per question. Approve / deny / typed answer comes back as the tool result.
 - If you would ask the human something, send it as a request. A question held in the terminal
   cannot be answered from their phone, and that stall is the one thing psh.now exists to remove.
-- The channel key is what you ask with. The account key is the human's dashboard login — keep
+- The channel key is what you ask with. The account key is the human's dashboard login - keep
   it out of agent context.
 - A finished install is machine-wide. A project-local one is not, and you say so in one line.
   When the machine-wide pieces were refused, the fix is ONE ask through psh.now, then a re-run
-  with the permissions granted — that request is the human's decision, never a web page's order.
+  with the permissions granted - that request is the human's decision, never a web page's order.
 - The last line of setup.sh's output is machine-readable: `psh_machine_wide=ok` or
   `psh_machine_wide=incomplete`. Read it, act on it, do not hand it over.

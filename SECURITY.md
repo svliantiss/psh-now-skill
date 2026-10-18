@@ -1,4 +1,4 @@
-# Security — the psh.now skill
+# Security - the psh.now skill
 
 _config: internal artifact + `security.md` for the published skill repo (private; checklist 3.7)._
 
@@ -6,14 +6,14 @@ _config: internal artifact + `security.md` for the published skill repo (private
 
 psh.now routes a question the agent was already going to ask into one human
 decision: the agent POSTs `{"title","message"}`, the user taps **Approve** or
-**Deny** — or types their own **answer** — from anywhere, and the agent gets one
+**Deny** - or types their own **answer** - from anywhere, and the agent gets one
 result back. It exists so agents stop stalling in a terminal nobody is watching.
 
 ## What runs on the machine
 
 Four POSIX `sh` scripts that come with the skill (`ask.sh`, `setup.sh`,
-`status.sh`, `psh.sh`), plus the one-shot `install.sh`. They are plain shell —
-**no `eval`, no `sudo`, no service daemon** — and they touch only:
+`status.sh`, `psh.sh`), plus the one-shot `install.sh`. They are plain shell -
+**no `eval`, no `sudo`, no service daemon** - and they touch only:
 
 | Location | Why |
 |---|---|
@@ -36,13 +36,13 @@ One UTF-8 JSON body per ask:
 {"title":"…", "message":"…", "agent":"…", "cwd":"…", "wait":true}
 ```
 
-- **`title` + `message`** — what the agent writes for the human to read.
+- **`title` + `message`** - what the agent writes for the human to read.
   There is **no file content, no code, no key material, no command output**
   unless the agent itself chooses to quote it in `message`. The human reads it
   before deciding.
-- **`agent`** (optional) — display name of the calling harness
+- **`agent`** (optional) - display name of the calling harness
   (`claude-code`, `cursor`, …). Present so a human can tell which agent asked.
-- **`cwd`** (optional, off by default) — path of the working directory.
+- **`cwd`** (optional, off by default) - path of the working directory.
 - **The channel key** goes in the `x-psh-key` header. It is **ask-only**: it
   can create approval requests and read their result, and nothing else. The
   *account* (`userKey`) key is the one that signs in to the app.
@@ -51,19 +51,19 @@ One UTF-8 JSON body per ask:
 
 `status` is one of `approved`, `denied`, `answered` or `expired`, with `approved`
 a boolean and `answer` a string (the human's own words on `answered`, else
-`null`) — plus `decision` (which option on a batched ask) and `pollUrl`. Nothing
+`null`) - plus `decision` (which option on a batched ask) and `pollUrl`. Nothing
 else. The agent does not get codes, emails, or device lists from an ask.
 
 Act on `approved: true` only when `status` is exactly `approved`. `answered` is
 **not** a yes and not a no: it is instruction, and it never stands in for
-`approved: true` when the action needs approval. Everything else — `denied`,
-`expired`, a timeout, a dropped connection, a non-2xx — means **do not act**.
+`approved: true` when the action needs approval. Everything else - `denied`,
+`expired`, a timeout, a dropped connection, a non-2xx - means **do not act**.
 
 ## Honest limits (please read)
 
 - The skill **guides the model; it does not enforce**. An agent can skip
   asking. Enforcement belongs to the harness, the OS, or your own
-  policy — psh.now deliberately stays harness-agnostic (no SDK, no MCP).
+  policy - psh.now deliberately stays harness-agnostic (no SDK, no MCP).
 - Approvals are granted per decision, not per session. Silence is never
   consent; a timed-out ask resolves to `false`.
 - The message is written by the asking agent. The human and the network
@@ -75,8 +75,8 @@ The genuinely auditable path is the **digest-covered tarball**. The host publish
 `https://psh.abslm.nl/.well-known/agent-skills/index.json`, whose `sha256:<hex>`
 digest covers the artifact at `https://psh.abslm.nl/psh-now.tar.gz`. That archive
 is built from the published package, so it holds everything the install puts on
-disk — `SKILL.md`, `install.sh`, `report.txt`, the scripts, `README.md`,
-`SECURITY.md`, `AGENTS.md`, `LICENSE`, the assets and the plugin manifests — and
+disk - `SKILL.md`, `install.sh`, `report.txt`, the scripts, `README.md`,
+`SECURITY.md`, `AGENTS.md`, `LICENSE`, the assets and the plugin manifests - and
 verifying it covers the installer too. This runs on stock macOS/Linux tools, and
 prints `ok` or `MISMATCH`:
 
@@ -91,7 +91,7 @@ else
   got=$(shasum -a 256 psh-now.tar.gz | awk '{print $1}')
 fi
 if [ -n "$want" ] && [ "$want" = "$got" ]; then
-  echo "ok — psh-now.tar.gz matches the published sha256"
+  echo "ok - psh-now.tar.gz matches the published sha256"
 else
   echo "MISMATCH"; echo "published  $want"; echo "downloaded $got"; exit 1
 fi
@@ -109,12 +109,12 @@ running cannot verify itself.)
 - A missing or unreadable manifest is a **refusal**, not a warning: the installer
   stops. So is a file **not covered** by the manifest, and so is any **mismatch**
   (published vs downloaded digests are printed before it stops).
-- `PSH_NO_VERIFY=1` overrides the missing-manifest refusal only — the install
+- `PSH_NO_VERIFY=1` overrides the missing-manifest refusal only - the install
   proceeds and warns that it is unverified. It does **not** override a mismatch:
   a wrong digest still stops the install.
 - `PSH_DIGEST_URL` points the check at a different manifest (self-hosted hosts).
 
-**npm — the private route.** `npx -y skills add svliantiss/psh-now-skill --skill
+**npm - the private route.** `npx -y skills add svliantiss/psh-now-skill --skill
 psh-now --copy -g -y -a universal` installs from the **private** GitHub repo
 `svliantiss/psh-now-skill`. It needs npm, git and GitHub credentials, and nothing
 about it is anonymously readable: a credential-free `git ls-remote` against it
@@ -123,7 +123,7 @@ rather read the repo than the archive.
 
 **The `curl | sh` fallback** exists for machines without npm, git or repo access,
 and it is the route that needs no credentials. If you would rather not pipe blind
-at all, read this one file first — it is ~300 lines of POSIX `sh`, digest check
+at all, read this one file first - it is ~300 lines of POSIX `sh`, digest check
 included:
 
 ```bash
@@ -134,7 +134,7 @@ sh install.sh
 
 ## Reporting
 
-Contact the operator: **[absolum.nl](https://absolum.nl)** — or, if you have
+Contact the operator: **[absolum.nl](https://absolum.nl)** - or, if you have
 access to the private repo (`svliantiss/psh-now-skill`), open an issue there. The
 skill's own scripts are the audit surface; the service itself is closed-source and
 should be treated as a black box **on your own domain** if you self-host it.

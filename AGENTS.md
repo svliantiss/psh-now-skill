@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Instructions for coding agents working in **this** repo (the psh.now skill
-package — a private repo). For the skill's own instructions to agents, see
+package - a private repo). For the skill's own instructions to agents, see
 `SKILL.md`.
 
 ## What this repo is
@@ -12,10 +12,11 @@ service (server, database, dashboard) is closed source and lives elsewhere.
 ## Rules
 
 - Keep `SKILL.md` focused, in the here.now style: docs-first, one clear
-  behavioural rule, one tool, one boolean. Do not add select/input, polling
+  behavioural rule, one tool, one boolean. Write plainly and never use em dashes
+  (use a hyphen). Do not add select/input, polling
   transports, or policy engines.
 - The skill **is** the mechanism. It must make this unmissable: *if you are about
-  to ask the user a question, do not end your turn with it — turn it into a
+  to ask the user a question, do not end your turn with it - turn it into a
   yes/no on your recommended route and route it through psh.now.* Destructive
   actions are examples, not the definition.
 - Store credentials in `<project>/.psh/keys.json` (outside the skill dir, so
@@ -26,19 +27,22 @@ service (server, database, dashboard) is closed source and lives elsewhere.
   (`status: "answered"`, with the text in `answer`): that is instruction, not
   approval, and it never stands in for `approved: true` where approval is
   required. Keep the "no fabricated approvals / no codes" rule, and keep the
-  request a single yes/no — no menus, no option lists.
+  request a single yes/no - no menus, no option lists.
 - Everything in the published package (`skill-repo/`) is **synced** from this
   tree by `scripts/sync-skill-repo.sh`. Edit the canonical `skills/psh-now/`
   files, never `skill-repo/` by hand.
-- Keep the install shape identical to the ecosystem norm:
-  `npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal` then
-  `sh ~/.agents/skills/psh-now/scripts/setup.sh` (the `-g` is what makes the skill machine-wide),
-  with a `curl …/install.sh | sh` fallback that needs no credentials.
+- Keep the install shape identical to the ecosystem norm, as ONE command so the human's
+  harness asks for approval once:
+  `npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal && sh ~/.agents/skills/psh-now/scripts/setup.sh`
+  (the `-g` is what makes the skill machine-wide), with a `curl …/install.sh | bash` fallback
+  that needs no credentials and finishes the join in the same command when it is handed a
+  channel link (`| bash -s -- <link>`). Never write an environment variable into a prompt a
+  human is meant to paste.
 - **A finished install is machine-wide**: the skill at
   `~/.agents/skills/psh-now` for every folder, a `psh` CLI on PATH, and one
   machine account record at `~/.psh/keys.json` (which keeps every project on ONE
   account). When a sandbox refuses those writes the run is **incomplete** and
-  says so — `psh_machine_wide=incomplete` as setup.sh's last line (`MACHINE-WIDE
+  says so - `psh_machine_wide=incomplete` as setup.sh's last line (`MACHINE-WIDE
   INCOMPLETE` from install.sh; exit 4 with `PSH_STRICT_MW=1`). The way to finish
   it is ONE ask through psh.now, then a re-run with the permissions granted.
   Never describe a project-local install as machine-wide.

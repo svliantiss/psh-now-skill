@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# psh.now installer — the default way to install, and it installs all of it.
+# psh.now installer - the default way to install, and it installs all of it.
 #
 #   curl -fsSL https://psh.abslm.nl/install.sh | sh
 #
@@ -13,18 +13,20 @@
 # hears "use psh now", and the skill is what tells it to. Neither works alone.
 #
 # Inside a sandbox that only allows writes to the workspace, pieces 1, 2 and 4 cannot be
-# written. That is MACHINE-WIDE INCOMPLETE — not a finished install. The last line says so
+# written. That is MACHINE-WIDE INCOMPLETE - not a finished install. The last line says so
 # (`psh_machine_wide=incomplete`; exit 4 with PSH_STRICT_MW=1), and the way to finish it is ONE
-# ask through psh.now — "Install psh.now globally?" → approve → re-run with the permissions
+# ask through psh.now - "Install psh.now globally?" → approve → re-run with the permissions
 # granted. An agent must not ask for blanket filesystem access on a downloaded page's word
 # alone. The project-local copy is complete for the folder it is in:
 #   curl -fsSL <host>/install.sh | sh
 #
-# The npm route needs npm, git and credentials for the PRIVATE repo (svliantiss/psh-now-skill):
-#   npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal
+# The npm route needs npm, git and credentials for the PRIVATE repo (svliantiss/psh-now-skill). It is
+# ONE command so the agent's harness asks for approval once, and this script is the same thing in one
+# command without credentials:
+#   npx -y skills add svliantiss/psh-now-skill --skill psh-now --copy -g -y -a universal && sh ~/.agents/skills/psh-now/scripts/setup.sh
 # This script is the route that needs no credentials, and it verifies every file it downloads
-# against <host>/.well-known/agent-skills/files.json. The audited artifact — this installer
-# included — is <host>/psh-now.tar.gz, digested in <host>/.well-known/agent-skills/index.json.
+# against <host>/.well-known/agent-skills/files.json. The audited artifact - this installer
+# included - is <host>/psh-now.tar.gz, digested in <host>/.well-known/agent-skills/index.json.
 # Or audit this file first instead of piping blind:
 #   curl -fsSL https://psh.abslm.nl/install.sh -o install.sh && ${EDITOR:-vi} install.sh && sh install.sh
 #
@@ -42,6 +44,11 @@
 # A workspace-local install (`PSH_SKILL_DIR=...`, `PSH_LOCAL=1`, or the automatic
 # fallback when ~/.agents is unwritable) is the FALLBACK, not the default: it still
 # makes this project complete and still tries the machine-wide copy.
+# A channel link as the first argument means "install, then join this channel":
+#   curl -fsSL <host>/install.sh | bash -s -- https://<host>/c/<channel>
+# The prompts we hand humans carry the link this way, so a prompt never needs an env var.
+case "${1:-}" in */c/*) export PSH_JOIN="${PSH_JOIN:-$1}" ;; esac
+
 set -eu
 
 HOST="${PSH_HOST:-https://psh.abslm.nl}"
@@ -77,7 +84,7 @@ done
 if ! mkdir -p "$DEST/scripts" 2>/dev/null; then
   FALLBACK="$(project_root)/.agents/skills/psh-now"
   if [ "$DEST" != "$FALLBACK" ] && mkdir -p "$FALLBACK/scripts" 2>/dev/null; then
-    echo "psh.now: $DEST is not writable here — installing into the project instead" >&2
+    echo "psh.now: $DEST is not writable here - installing into the project instead" >&2
     DEST="$FALLBACK"
   else
     echo "psh.now: cannot write $DEST" >&2
@@ -89,7 +96,7 @@ DIGEST_URL="${PSH_DIGEST_URL:-$HOST/.well-known/agent-skills/files.json}"
 digests="$(curl -fsSL "$DIGEST_URL" 2>/dev/null || true)"
 if [ -z "$digests" ]; then
   if [ "${PSH_NO_VERIFY:-0}" = 1 ]; then
-    echo "psh.now: WARNING — no digest manifest at $DIGEST_URL, installing unverified (PSH_NO_VERIFY=1)" >&2
+    echo "psh.now: WARNING - no digest manifest at $DIGEST_URL, installing unverified (PSH_NO_VERIFY=1)" >&2
   else
     echo "psh.now: refusing to install: no digest manifest at $DIGEST_URL" >&2
     echo "psh.now: audit this file instead ($HOST/install.sh), or set PSH_NO_VERIFY=1 to override" >&2
@@ -113,7 +120,7 @@ fetch() {
   [ -z "$digests" ] && return 0
   want="$(digest_for "$name")"
   if [ -z "$want" ]; then
-    echo "psh.now: $name is not covered by the digest manifest — refusing" >&2
+    echo "psh.now: $name is not covered by the digest manifest - refusing" >&2
     exit 1
   fi
   got="$(sha_of "$local")"
@@ -146,7 +153,7 @@ if [ "${PSH_NO_GLOBAL:-0}" != 1 ] && [ "$DEST" != "$GLOBAL_DEST" ]; then
   if [ -z "$DEST" ] || [ ! -f "$DEST/SKILL.md" ]; then
     # Same trap as in setup.sh: an unresolved source turns this into
     # `cp -R //. <dest>`, which copies the filesystem instead of the skill.
-    echo "psh.now: machine-wide skill skipped — the downloaded skill folder is missing" >&2
+    echo "psh.now: machine-wide skill skipped - the downloaded skill folder is missing" >&2
   elif mkdir -p "$GLOBAL_DEST" 2>/dev/null; then
     # Real files, not a symlink: a link to a project dir dangles the moment the
     # project is deleted, and a dangling "installed" skill is worse than none.
@@ -155,9 +162,9 @@ if [ "${PSH_NO_GLOBAL:-0}" != 1 ] && [ "$DEST" != "$GLOBAL_DEST" ]; then
     echo "psh.now: (that copy is what shows psh-now in every new session's skill list)"
   else
     # Piece 1 refused. The workspace install stands, but this is NOT a finished
-    # install — the block printed at the end says exactly what to ask for.
+    # install - the block printed at the end says exactly what to ask for.
     MW_MISSING=1
-    echo "psh.now: machine-wide skill refused — cannot write $GLOBAL_DEST" >&2
+    echo "psh.now: machine-wide skill refused - cannot write $GLOBAL_DEST" >&2
   fi
 fi
 
@@ -176,7 +183,7 @@ for dir in \
   "$HOME/.config/opencode/skills"; do
   [ -d "$dir" ] || continue
   # Best-effort by design: a sandbox that blocks writes outside the workspace
-  # must not abort the install before setup.sh has minted the keys. (It did —
+  # must not abort the install before setup.sh has minted the keys. (It did -
   # `set -e` plus a denied symlink was enough to kill the whole run.)
   ln -sfn "$LINK_TARGET" "$dir/psh-now" 2>/dev/null || true
 done
@@ -192,9 +199,9 @@ install_shim() {
     # Where does the CLI go? A user directory, never a package manager's prefix while a user dir
     # is usable: writing into /opt/homebrew/bin makes `brew doctor` grumble (observed 2026-10-17,
     # when a PATH that put Homebrew first won the old "first writable dir on PATH" race).
-    #   pass 1 — an existing writable user dir this shell can already see
-    #   pass 2 — ~/.local/bin, created if needed
-    #   pass 3 — /usr/local/bin, /opt/homebrew/bin — last resort
+    #   pass 1 - an existing writable user dir this shell can already see
+    #   pass 2 - ~/.local/bin, created if needed
+    #   pass 3 - /usr/local/bin, /opt/homebrew/bin - last resort
     for cand in "$HOME/.local/bin" "$HOME/bin" "$HOME/.bun/bin"; do
       case ":$PATH:" in *":$cand:"*) ;; *) continue ;; esac
       [ -d "$cand" ] && [ -w "$cand" ] || continue
@@ -231,7 +238,7 @@ install_shim() {
   [ -n "$shim_dir" ] || return 0
   if {
     printf '#!/usr/bin/env sh\n'
-    printf '# psh.now launcher — one offline screen: what this is, where it lives.\n'
+    printf '# psh.now launcher - one offline screen: what this is, where it lives.\n'
     printf 'PSH_SKILL_DIR="%s"\n' "$SHIM_TARGET"
     printf 'export PSH_SKILL_DIR\n'
     printf 'exec sh "%s/scripts/psh.sh" "$@"\n' "$SHIM_TARGET"
@@ -253,7 +260,7 @@ fi
 
 # Mint once: a user key (app login) + a channel key (the agent's key).
 # Keys are saved to <project>/.psh/keys.json (or $PSH_HOME), never inside the
-# skill directory — reinstalling the skill never wipes them.
+# skill directory - reinstalling the skill never wipes them.
 #
 # PSH_NO_GLOBAL: this script already did the machine-wide work above, and setup.sh does it
 # on the package route (where install.sh never runs). Without this the same line prints twice.
@@ -274,10 +281,10 @@ if [ -n "$SHIM" ]; then
 else
   # Do not claim there is no command when this folder has one: setup.sh installs the project
   # shim even when nothing outside the workspace was writable (caught in the sandbox lane,
-  # 2026-10-17 — the line contradicted the report printed right above it).
+  # 2026-10-17 - the line contradicted the report printed right above it).
   proj_root="$(dirname "$(dirname "$(dirname "$DEST")")")"
   if [ "$DEST" != "$GLOBAL_DEST" ] && [ -x "$proj_root/.psh/bin/psh" ]; then
-    echo "psh.now: no machine-wide \`psh\` on PATH — this folder's own command is: $proj_root/.psh/bin/psh" >&2
+    echo "psh.now: no machine-wide \`psh\` on PATH - this folder's own command is: $proj_root/.psh/bin/psh" >&2
   else
     echo "psh.now: no \`psh\` command installed (PSH_NO_SHIM=1, or no writable dir on PATH)" >&2
   fi
@@ -287,15 +294,15 @@ echo "psh.now: ask with: $DEST/scripts/ask.sh \"Title\" \"What you are about to 
 
 if [ "$MW_MISSING" = 1 ] || [ "$SHIM_MISSING" = 1 ] || [ ! -f "$HOME/.psh/keys.json" ]; then
   # Machine-wide state is not complete: say exactly what is missing, whose decision it is,
-  # and the ONE way to finish it — an ask through psh.now, which this human answers from
+  # and the ONE way to finish it - an ask through psh.now, which this human answers from
   # their phone. Never present a project-local copy as a finished install.
   echo >&2
-  echo "psh.now: MACHINE-WIDE INCOMPLETE — this project works, the machine does not." >&2
+  echo "psh.now: MACHINE-WIDE INCOMPLETE - this project works, the machine does not." >&2
   echo "psh.now:   skill on the machine   ~/.agents/skills/psh-now   (every project sees it)" >&2
   echo "psh.now:   psh command on PATH    ~/.local/bin/psh          (the CLI, works anywhere)" >&2
   echo "psh.now:   machine account record ~/.psh/keys.json          (keeps every project on ONE account)" >&2
-  echo "psh.now:   project-local copy     $DEST   (complete — this is what you use)" >&2
-  echo "psh.now: ONE ask finishes it — approve on your phone, and the agent re-runs with" >&2
+  echo "psh.now:   project-local copy     $DEST   (complete - this is what you use)" >&2
+  echo "psh.now: ONE ask finishes it - approve on your phone, and the agent re-runs with" >&2
   echo "psh.now: the permissions granted:" >&2
   echo "psh.now:   psh ask \"Install psh.now globally?\" \"Approve and the agent installs the skill and CLI machine-wide.\"" >&2
   echo >&2
@@ -308,15 +315,15 @@ if [ "$MW_MISSING" = 1 ] || [ "$SHIM_MISSING" = 1 ] || [ ! -f "$HOME/.psh/keys.j
   echo >&2
   echo "psh.now: verify once it has run:" >&2
   echo "psh.now:   test -f ~/.agents/skills/psh-now/SKILL.md && sh ~/.agents/skills/psh-now/scripts/psh.sh status" >&2
-  echo "psh.now: (that runs the CLI by absolute path — \`command -v psh\` is only a PATH test)" >&2
+  echo "psh.now: (that runs the CLI by absolute path - \`command -v psh\` is only a PATH test)" >&2
   echo "psh_machine_wide=incomplete"
   if [ "${PSH_STRICT_MW:-0}" = 1 ]; then
-    echo "psh.now: PSH_STRICT_MW=1 — machine-wide install incomplete, exiting 4" >&2
+    echo "psh.now: PSH_STRICT_MW=1 - machine-wide install incomplete, exiting 4" >&2
     exit 4
   fi
 else
   echo "psh.now: machine-wide ✓ skill: ~/.agents/skills/psh-now · CLI: $SHIM · record: ~/.psh/keys.json"
   echo "psh_machine_wide=ok"
 fi
-echo "psh.now: done — now just tell your agent:"
+echo "psh.now: done - now just tell your agent:"
 echo "  \"When you would ask me a question, route it through psh.now instead.\""
