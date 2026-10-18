@@ -102,17 +102,18 @@ After installing, send me a test request.
 **2. Join a channel** (this agent is already set up). The link is the whole instruction:
 
 ```text
-Please use psh.now and join https://psh.abslm.nl/c/<channel-id>
+I'd like you to use psh.now and join https://psh.abslm.nl/c/<channel-id>.
 ```
 
-**3. A new sandbox that must join** (nothing set up, and it belongs on an existing channel):
+**3. A new sandbox that must join** (nothing set up, and it belongs on an existing channel).
+The channel pages hand out prompt 2, not this one: re-running an installer on a machine that
+only needed to join is what mints a second account.
 
 ```text
 I'd like you to set up psh.now: Install as a skill with npx skills add svliantiss/psh-now-skill -g -y
+and join https://psh.abslm.nl/c/<channel-id>
 
-If not, do this instead: curl -fsSL https://psh.abslm.nl/install.sh | bash -s -- https://psh.abslm.nl/c/<channel-id>
-
-And I want to join https://psh.abslm.nl/c/<channel-id>.
+If not, do this instead: curl -fsSL https://psh.abslm.nl/install.sh | bash
 ```
 
 The paste command is one line on purpose, and it carries `-y`: the skills CLI waits on a

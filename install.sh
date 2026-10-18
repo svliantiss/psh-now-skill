@@ -45,7 +45,7 @@
 # fallback when ~/.agents is unwritable) is the FALLBACK, not the default: it still
 # makes this project complete and still tries the machine-wide copy.
 # A channel link as the first argument means "install, then join this channel":
-#   curl -fsSL <host>/install.sh | bash -s -- https://<host>/c/<channel>
+#   curl -fsSL <host>/install.sh | bash        (a channel link goes in the sentence, not here)
 # The prompts we hand humans carry the link this way, so a prompt never needs an env var.
 case "${1:-}" in */c/*) export PSH_JOIN="${PSH_JOIN:-$1}" ;; esac
 
