@@ -15,6 +15,10 @@ service (server, database, dashboard) is closed source and lives elsewhere.
   behavioural rule, one tool, one boolean. Write plainly and never use em dashes
   (use a hyphen). Do not add select/input, polling
   transports, or policy engines.
+- **A question is label-free.** What the human sees is one question line, a blank line, then
+  one sentence saying exactly what you will do. Nothing is written in front of the first line:
+  no `title:`, no `Question:` or `Answer:`, no `Recommended:` prefix, and no em dashes. A tap
+  must need no follow-up. The card, the CLI and the answer text all keep this shape.
 - The skill **is** the mechanism. It must make this unmissable: *if you are about
   to ask the user a question, do not end your turn with it - turn it into a
   yes/no on your recommended route and route it through psh.now.* Destructive

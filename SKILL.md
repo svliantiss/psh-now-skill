@@ -357,7 +357,7 @@ Or call the host directly (the first call with no key mints one):
 curl -s -X POST "$PSH_BASE_URL" \
   -H "x-psh-key: $PSH_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"title":"Reinstall dependencies","message":"rm -rf node_modules && npm install --force"}'
+  -d '{"title":"Reinstall dependencies?","message":"I will remove node_modules and install from the lockfile."}'
 ```
 
 `ask.sh` prints the response JSON on **stdout** and progress on **stderr**,
@@ -373,7 +373,7 @@ poll it:
 # 1. create the request; returns at once
 curl -s -X POST "$PSH_BASE_URL" \
   -H "x-psh-key: $PSH_API_KEY" -H "Content-Type: application/json" \
-  -d '{"title":"Deploy","message":"Deploy the new build?","wait":false}'
+  -d '{"title":"Deploy the new build?","message":"I will push the new build to production.","wait":false}'
 # -> {"status":"pending","approved":false,"promptId":"…","pollUrl":"…"}
 
 # 2. poll (add ?wait=30 to hold up to 30s)
@@ -407,15 +407,29 @@ thoroughness.
   while your first ask is still open, fold it into the same yes/no - never fire
   two cards back to back.
 - The whole request should fit one screen and read in ~5 seconds.
+- **No labels, no em dashes.** The first line is the question itself; nothing is written in
+  front of it. No `title:`, no `Question:`, no `Recommended:`. Use a hyphen, a comma or a
+  full stop instead of an em dash.
 
 **Format:**
 
 ```
-title:   <a short question, e.g. "Proceed with the migration?">
-message: Recommended: <the one-line decision>. <optional: one short line of what changes>
+Can I restart the server with recommended options?
+
+I want to use `zsh` with the `.env`, killing the process and backing it up to Linear in
+DD-MM-YYYY HH:MM format.
 ```
 
-No `Task:` / `Test:` prefixes - they read as filler on the card.
+The first line **is** the question, in the words you would say out loud, ending in `?`. Then
+one blank line, then one sentence naming exactly what you will do, with the specifics
+(`zsh`, `.env`, the format) so the tap needs nothing else.
+
+**No labels anywhere.** Nothing in front of the first line: no `title:` / `message:`, no
+`Question:` or `Answer:`, no `Recommended:` prefix, no `Task:` / `Test:` - they all read as
+filler on the card, and an answer comes back as the words the human typed, not under a
+heading. **No em dashes** - a hyphen, a comma or a full stop instead.
+
+Those two parts are the two arguments: `psh ask "<the question>" "<the sentence>"`.
 
 **Bad** - a list of choices dumped into `message` (there is nothing to tap but Approve/Deny):
 
@@ -431,8 +445,9 @@ When you have several related decisions, **do not ask them one at a time and do
 not dump them as a list.** Decide them yourself and ask **one** yes/no:
 
 ```
-title:   Restart the dev server?
-message: Recommended: zsh + SIGTERM + exponential backoff, after backing up .env.
+Restart the dev server?
+
+I will use zsh, SIGTERM and exponential backoff, after backing up .env.
 ```
 
 One tap settles all of them. The card is always the same small shape:
@@ -445,22 +460,23 @@ cannot defend one path, you are not ready to ask.
 **Bad** - a paragraph of sub-questions (the user cannot scan this):
 
 > Your link /c/… is expired (410), so I minted a fresh Default channel: …
-> Recommended: yes - use this new channel for all approvals, save the 82-model
-> listing to docs/passy-models.md, and run one free-model test completion
+> Use this new channel for all approvals, save the 82-model listing to
+> docs/passy-models.md, and run one free-model test completion
 > (passy/DeepSeek-V4.1-Flash). Deny to stop so you can supply a fresh link instead.
 
 **Good** - two lines, everything decided:
 
 ```
-title:   Use the new Default channel and continue?
-message: Recommended: yes - fresh channel (old link expired), 82 models, DeepSeek-Flash.
+Use the new Default channel and continue?
+
+The old link expired, so I will use the fresh Default channel with the same 82 models.
 ```
 
 | Instead of asking… | Route this |
 | --- | --- |
-| "Should I create `src/` and a `PLAN.md`?" | `{"title":"Create src/ and PLAN.md?","message":"Recommended: create src/ and PLAN.md. No source files yet."}` |
-| "Which option do you want - A, B, or C?" | `{"title":"Proceed with option A?","message":"Recommended: A (fastest). Deny to stop."}` |
-| "Shall I delete the old folder?" | `{"title":"Delete old-folder/ ?","message":"Recommended: yes - empty and reversible (rmdir)."}` |
+| "Should I create `src/` and a `PLAN.md`?" | `{"title":"Create src/ and PLAN.md?","message":"I will create src/ and write PLAN.md, with no source files yet."}` |
+| "Which option do you want - A, B, or C?" | `{"title":"Proceed with option A?","message":"I will take option A, the fastest one."}` |
+| "Shall I delete the old folder?" | `{"title":"Delete old-folder/?","message":"I will remove it with rmdir, since it is empty and reversible."}` |
 
 ## Channels, keys, and sharing
 
@@ -476,7 +492,7 @@ message: Recommended: yes - fresh channel (old link expired), 82 models, DeepSee
 
 ```bash
 # attach a request to a channel
-./scripts/ask.sh "Deploy?" "Recommended: deploy the new build." my-project
+./scripts/ask.sh "Deploy the new build?" "I will push the new build to production." my-project
 ```
 
 ## Many agents, one account
@@ -595,7 +611,7 @@ there if you send it. `ask.sh` sends it automatically:
   persona or bot name.
 
 ```bash
-./scripts/ask.sh "Deploy?" "Recommended: deploy." --agent "nightly-sync" --client claude-code
+./scripts/ask.sh "Deploy the new build?" "I will push the new build to production." --agent "nightly-sync" --client claude-code
 ```
 
 ## Anonymous → registered

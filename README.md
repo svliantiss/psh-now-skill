@@ -77,7 +77,7 @@ export PSH_API_KEY="psh_agent_..."
 curl -s -X POST "$PSH_BASE_URL" \
   -H "x-psh-key: $PSH_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"title":"Create src/ and PLAN.md?","message":"Recommended: create src/ and write PLAN.md. No source files yet."}'
+  -d '{"title":"Create src/ and PLAN.md?","message":"I will create src/ and write PLAN.md, with no source files yet."}'
 ```
 
 The human has three buttons, so one of these comes back:
