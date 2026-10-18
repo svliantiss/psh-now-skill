@@ -30,7 +30,7 @@ invisible account. The install command is machine-wide by default for exactly th
 about it is anonymously readable:
 
 ```bash
-npx -y github:svliantiss/psh-now-skill
+npx skills add svliantiss/psh-now-skill -g -y
 ```
 
 That one command fetches the private repo and runs its `install.sh` as its bin, so it copies

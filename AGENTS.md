@@ -31,14 +31,16 @@ service (server, database, dashboard) is closed source and lives elsewhere.
 - Everything in the published package (`skill-repo/`) is **synced** from this
   tree by `scripts/sync-skill-repo.sh`. Edit the canonical `skills/psh-now/`
   files, never `skill-repo/` by hand.
-- Keep the install shape identical to the ecosystem norm, as ONE command so the human's
-  harness asks for approval once:
-  `npx -y github:svliantiss/psh-now-skill`
-  (machine-wide by default: the skill in `~/.agents/skills/psh-now`, `psh` on PATH, and
-  `~/.psh/keys.json`), with a `curl …/install.sh | bash` fallback
-  that needs no credentials and finishes the join in the same command when it is handed a
-  channel link (`| bash -s -- <link>`). Never write an environment variable into a prompt a
-  human is meant to paste.
+- Keep the install shape identical to the ecosystem norm, as ONE pasteable command, and keep
+  its trailing `-y`:
+  `npx skills add svliantiss/psh-now-skill -g -y`
+  Without `-y` the skills CLI waits on a prompt, installs nothing and exits 1 (measured
+  2026-10-18, cold cache, no TTY). `-g` is the machine-wide copy into
+  `~/.agents/skills/psh-now`; the line mints nothing, so `scripts/setup.sh` runs once after it
+  to create `~/.psh/keys.json` and put `psh` on PATH. The `curl …/install.sh | bash` fallback
+  needs no credentials and finishes the join in the same command when it is handed a channel
+  link (`| bash -s -- <link>`). Never write an environment variable into a prompt a human is
+  meant to paste.
 - **A finished install is machine-wide**: the skill at
   `~/.agents/skills/psh-now` for every folder, a `psh` CLI on PATH, and one
   machine account record at `~/.psh/keys.json` (which keeps every project on ONE

@@ -23,7 +23,7 @@
 # The npm route needs npm, git and credentials for the PRIVATE repo (svliantiss/psh-now-skill). It is
 # ONE command so the agent's harness asks for approval once, and this script is the same thing in one
 # command without credentials:
-#   npx -y github:svliantiss/psh-now-skill
+#   npx skills add svliantiss/psh-now-skill -g -y
 # This script is the route that needs no credentials, and it verifies every file it downloads
 # against <host>/.well-known/agent-skills/files.json. The audited artifact - this installer
 # included - is <host>/psh-now.tar.gz, digested in <host>/.well-known/agent-skills/index.json.
