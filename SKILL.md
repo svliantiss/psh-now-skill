@@ -37,8 +37,7 @@ metadata:
 
 **Start here: run this project's `psh`.** One offline screen names the skill, the host, this
 project's keys, the exact ask command, and anything stale. If a folder has no psh.now at all,
-the install is one command with npm and git (`@psh-now`'s repo is private, so it needs your GitHub
-credentials), and one line without them:
+the install is one command with npm and git (your GitHub credentials, only if that repo is private), and one line without them:
 
 ```bash
 npx skills add svliantiss/psh-now-skill -g -y
@@ -150,7 +149,7 @@ setup only mints a key locally and calls the host. Everything needed is here.
 
    ```bash
    npx skills add svliantiss/psh-now-skill -g -y
-   # no npm/git, or no access to the private repo? the hosted installer does both, and needs no
+   # no npm/git, or no GitHub access? the hosted installer does both, and needs no
    # permission at all inside the folder:
    #   curl -fsSL https://psh.abslm.nl/install.sh | bash
    #   ↳ machine-wide (skill for every project + `psh` on PATH + ~/.psh/keys.json) is the
@@ -293,7 +292,7 @@ live API behaviour disagree, trust the live API behaviour.
 npx skills add svliantiss/psh-now-skill -g -y
 ```
 
-The repo is private, so that route needs npm, git and your GitHub credentials. Without them the
+That route needs npm and git, plus GitHub credentials when the repo is private. Without them the
 hosted installer does the same job - it mints the keys too, and verifies every file it downloads
 against the published digests:
 

@@ -20,7 +20,7 @@
 # alone. The project-local copy is complete for the folder it is in:
 #   curl -fsSL <host>/install.sh | sh
 #
-# The npm route needs npm, git and credentials for the PRIVATE repo (svliantiss/psh-now-skill). It is
+# The npm route needs npm and git (GitHub credentials too, if that repo is private). It is
 # ONE command so the agent's harness asks for approval once, and this script is the same thing in one
 # command without credentials:
 #   npx skills add svliantiss/psh-now-skill -g -y

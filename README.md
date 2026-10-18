@@ -2,12 +2,12 @@
 
 The installable skill for [psh.now](https://psh.abslm.nl) - human approval for AI
 agents: **approve, deny, or answer**, one request per question. This repository is
-**private**; the psh.now service itself is closed source.
+**published as a GitHub package**; the psh.now service itself is closed source.
 
 > One host + one key + one answer. Your agent never stalls on a question.
 
 An agent that needs a decision routes it here as a single request on its
-recommended route - a short **title** and a **message** - instead of stopping in a
+recommended route, in one line, instead of stopping in a
 terminal you can't see. You tap **Approve** or **Deny**, or type an **answer** in
 your own words, from your phone or the dashboard. The agent gets one result back
 and carries on.
@@ -26,14 +26,14 @@ A finished install is **machine-wide** and leaves four pieces in place:
 The machine account record is what stops the next folder from minting a second,
 invisible account. The install command is machine-wide by default for exactly that reason.
 
-**npm - the private repo.** It needs npm, git and GitHub credentials; nothing
-about it is anonymously readable:
+**npm - the GitHub package.** It needs npm and git, plus GitHub credentials only if that repo is
+private. Nothing else is required:
 
 ```bash
 npx skills add svliantiss/psh-now-skill -g -y
 ```
 
-That one command fetches the private repo and runs its `install.sh` as its bin, so it copies
+That one command fetches the repo and runs its `install.sh` as its bin, so it copies
 the skill machine-wide, mints the account record, installs the `psh` CLI and prints the
 verdict. One command, so the human's harness asks for approval once.
 
@@ -100,8 +100,8 @@ what it says, and if it left the action undecided, ask again. A timeout, a proxy
 error, a `pending` request, or anything else means **do not act**. Silence is
 never consent.
 
-Keep it to one screen: one request per question, a short yes/no title, and at most
-two lines of message leading with your recommendation.
+Keep it to one screen: one request per question - the question itself as the first line, then
+one sentence saying exactly what you will do.
 
 ## Pair a device
 
@@ -123,9 +123,8 @@ still wait on the dashboard.
 ```
 SKILL.md                  the skill (Agent Skills format)
 README.md                 this file
-SECURITY.md               what runs, what is sent, and how to audit the install
-AGENTS.md                 instructions for coding agents working in this repo
 LICENSE                   MIT
+package.json              name + bin, for the npm route
 host                      the baked-in host (a non-dotfile, so `npx skills add` copies it)
 install.sh                the credential-free installer (covered by the tarball digest)
 report.txt                the install-report template (versioned with the skill)
@@ -133,9 +132,6 @@ scripts/ask.sh            send one request (the only runtime need)
 scripts/setup.sh          mint keys once / attach via a channel link / --uninstall
 scripts/status.sh         healthy, reachable, authenticated? --doctor adds a map
 scripts/psh.sh            the `psh` command
-assets/logo.svg
-.codex-plugin/plugin.json
-.cursor-plugin/plugin.json
 ```
 
 Everything in this package is generated from the service repo's `skills/psh-now/`

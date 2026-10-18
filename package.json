@@ -8,17 +8,12 @@
     "psh-now": "install.sh"
   },
   "files": [
-    "install.sh",
     "SKILL.md",
     "README.md",
-    "AGENTS.md",
-    "SECURITY.md",
     "LICENSE",
+    "install.sh",
     "report.txt",
-    "scripts/",
-    "assets/",
-    "host/",
-    ".codex-plugin/",
-    ".cursor-plugin/"
+    "host",
+    "scripts/"
   ]
 }
